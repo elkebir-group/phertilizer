@@ -72,8 +72,7 @@ def main(args):
                                     seed = args.seed,
                                     dim_reduction = args.dim_reduction,
                                     radius = args.radius,
-                                    npass = args.npass
-                                    )
+                                    npass = args.npass )
 
     
     cell_lookup, mut_lookup = ph.get_id_mappings()

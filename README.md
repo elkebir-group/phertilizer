@@ -106,4 +106,16 @@ Phertilizer can be run in two modes:
                             output file that maps internal mutation index to the input mutation label
       -v, --verbose         Be verbose
 
+### Example
 
+Here we show an example of how to run `Phertilizer`.
+The input files are located in the `example/input` directory.
+
+
+    $ python cna_mode/run_phertilizer.py -f example/input/variant_counts.tsv  \
+      --bin_count_data example/input/binned_read_counts.csv \
+      --bin_count_normal example/input/normal_cells.tsv --snv_bin_mapping example/input/snv_bin_mapping.csv \
+      --min_cells 100 --min_snvs 100 -d 14 --tree example/output/tree.png -n example/output/cell_clusters.csv \
+      -m example/output/SNV_clusters.csv -e example/output/CNA_genotypes.csv 
+
+This command generates output files `tree.png`, `cell_clusters.csv`, `SNV_clsuters.csv` and `CNA_genotypes.csv` in directory `example\output`.

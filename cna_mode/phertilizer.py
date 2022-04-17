@@ -255,6 +255,8 @@ class Phertilizer:
         self.mapping_list = None
         self.explored_seeds = None
 
+        self.min_loss =0
+
         #wrangle input data into the correct format
         variant_count_data['chr_mutation'] = variant_count_data['chr'].astype('str') + "_" + variant_count_data['mutation_id'].astype(str)
         self.cell_labels = np.sort(variant_count_data['cell_id'].unique())

@@ -45,9 +45,7 @@ def main(args):
     ph = Phertilizer(variant_data, 
                     bin_count_data, 
                     bin_count_normal,
-                    snv_bin_mapping,
-                    debug = args.debug,
-                    include_cna= args.include_cna_events,
+                    snv_bin_mapping
                     )
  
     if args.min_frac is not None:
@@ -75,7 +73,7 @@ def main(args):
 
     
     cell_lookup, mut_lookup = ph.get_id_mappings()
-    print("\Phertilizer Tree....")
+    print("\nPhertilizer Tree....")
     print(grow_tree)
 
 
@@ -93,9 +91,9 @@ def main(args):
     if args.tree_pickle is not None:
         pickle_save(grow_tree, args.tree_pickle)
   
+    cell_lookup,mut_lookup = ph.get_id_mappings()
+    pcell, pmut, _, event_df = grow_tree.generate_results(cell_lookup, mut_lookup)
 
-    pcell, pmut, _, event_df = ph.generate_results(grow_tree)
-    cell_lookup, variant_data = ph.get_id_mappings()
     
     if args.cell_lookup is not None:
         cell_lookup = cell_lookup.rename("cell_label")

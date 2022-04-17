@@ -16,13 +16,12 @@ Phertilizer infers a clonal tree with SNV and CNA genotypes given ultra-low cove
   2. [Usage instructions](#usage)
      * [Modes](#modes)    
      * [I/O formats](#io)
-     * [Phertilizer](#phertilizer)
+     * [CNA Mode](#cna-mode)
 
 <a name="install"></a>
 
 ## Installation
 
-<a name="install"></a>
   1. Clone the repository
       ```bash
             $ git clone https://github.com/elkebir-group/phertilizer.git
@@ -39,9 +38,10 @@ Phertilizer infers a clonal tree with SNV and CNA genotypes given ultra-low cove
 + [pickle](https://docs.python.org/3/library/pickle.html)
 + [pygrahpviz](https://pygraphviz.github.io)
 
-
+<a name="usage"></a>
+## Usage
 <a name="modes"></a>
-## Modes
+### Modes
 Phertilizer can be run in two modes:
  1. *CNA Mode* 
     + Input: variant/total read counts, binned read counts for tumor cells, binned read counts for normal cells, mapping of SNVs to bin 
@@ -50,7 +50,10 @@ Phertilizer can be run in two modes:
     + Input: variant/total read counts, binned read counts for tumor cells 
     + Phertilizer returns a clonal tree, a cell clustering and **only SNV genotypes** 
 
-### CNA Mode Arguments
+### IO Formats
+
+<a name="cna-mode"></a>
+### CNA Mode
     usage: run_phertilizer.py [-h] [-f FILE] [--bin_count_data BIN_COUNT_DATA] [--bin_count_normal BIN_COUNT_NORMAL]
                               [--snv_bin_mapping SNV_BIN_MAPPING] [-a ALPHA] [--min_cells MIN_CELLS] [--min_snvs MIN_SNVS]
                               [--min_frac MIN_FRAC] [-j ITERATIONS] [-s STARTS] [-d SEED] [--npass NPASS] [--radius RADIUS]
@@ -106,7 +109,8 @@ Phertilizer can be run in two modes:
                             output file that maps internal mutation index to the input mutation label
       -v, --verbose         Be verbose
 
-### Example
+<a name="phertilizer"></a>
+### CNA Mode Example
 
 Here we show an example of how to run `Phertilizer`.
 The input files are located in the `example/input` directory.

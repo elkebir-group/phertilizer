@@ -50,3 +50,7 @@ Phertilizer can be run in two modes:
  2. *SNV Mode* 
     + Input: variant/total read counts, binned read counts for tumor cells 
     + Phertilizer returns a clonal tree, a cell clustering and **only SNV genotypes** 
+
+### CNA Mode Arguments
+    
+    

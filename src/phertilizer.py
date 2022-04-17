@@ -11,7 +11,6 @@ import linear_split as ls
 from seed import Seed
 from clonal_tree import IdentityTree
 from collections import deque
-import umap
 from clonal_tree_list import ClonalTreeList
 
 
@@ -338,7 +337,7 @@ class Phertilizer:
         
 
 
-    def till(self, max_copies, alpha, seed  =10262022, dim_reduction = False, neutral_mean=1.0, neutral_eps=0.15):
+    def till(self, max_copies, alpha, seed  =10262022, neutral_mean=1.0, neutral_eps=0.15):
    
 
    
@@ -348,19 +347,10 @@ class Phertilizer:
 
         #compute distance matrix for binned read count data
         if  self.use_cna_info:
-            if dim_reduction:
-           
-                reducer = umap.UMAP(random_state=seed, n_components=5)
-                self.bin_count = reducer.fit_transform(self.rdr)
-
-        
-            #generate distance matrix
-                self.copy_distance = squareform(pdist(self.bin_count, metric="euclidean"))
-            else:
+      
     
                 self.copy_distance = squareform(pdist(self.rdr, metric="euclidean"))
 
-                assert not np.any(np.isnan(self.copy_distance))
 
      
         #precompute local likelihoods 
@@ -440,7 +430,6 @@ class Phertilizer:
                     neutral_mean, 
                     neutral_eps, 
                     seed=10261982, 
-                    dim_reduction=False, 
                     radius=0.5, 
                     npass=1):
 
@@ -486,7 +475,7 @@ class Phertilizer:
       
         ###tilling phase
         print("\nStarting tilling phase....")
-        seed_list, data = self.till(max_copies, alpha,seed, dim_reduction, self.neutral_mean, self.neutral_eps)
+        seed_list, data = self.till(max_copies, alpha,seed,self.neutral_mean, self.neutral_eps)
         print("Tilling phase complete!")
      
         print(f"Phertilizing a tree with n:{len(self.cells)} cells and m: {len(self.muts)} SNVs")

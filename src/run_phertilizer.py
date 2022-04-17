@@ -70,7 +70,6 @@ def main(args):
                                     neutral_mean = args.neutral_mean,
                                     neutral_eps = args.neutral_eps,
                                     seed = args.seed,
-                                    dim_reduction = args.dim_reduction,
                                     radius = args.radius,
                                     npass = args.npass )
 
@@ -129,16 +128,15 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--file", 
-        help="input file for variant and total read counts without column headers [chr snv cell base var total]")
+        help="input file for variant and total read counts with unlabled columns: [chr snv cell base var total]")
     parser.add_argument("--bin_count_data", 
         help="input binned read counts with headers containing bin ids")
     parser.add_argument("--bin_count_normal", 
         help="input binned read counts for normal cells with identical bins as the bin count data")
     parser.add_argument("--snv_bin_mapping", 
-        help = "a comma delimited file with unlabeled columns: [snv,chr,bin]")
+        help = "a comma delimited file with unlabeled columns: [snv chr bin]")
     parser.add_argument("-a", "--alpha", type=float,default= 0.001,
         help="per base read error rate" )
-    parser.add_argument("--include_cna_events", action="store_true")
     parser.add_argument("--min_cells", type=int, default=100,
         help="smallest number of cells required to form a clone")
     parser.add_argument("--min_snvs", type=int, default=100,
@@ -169,8 +167,6 @@ if __name__ == "__main__":
         help= "output file for png (dot) of Phertilizer tree")
     parser.add_argument("--tree_pickle", 
         help= "output pickle of Phertilizer tree")
-    parser.add_argument( "--dim_reduction", action= "store_true",
-        help="use UMAP coordinates on read depth ratio instead of all bins")
     parser.add_argument( "--tree_path", 
         help="path to directory where pngs of all trees are saved")
     parser.add_argument( "--tree_list", 

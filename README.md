@@ -55,9 +55,9 @@ Phertilizer can be run in two modes:
 
 
 <a name="cna-mode"></a>
-### CNA Mode
+#### CNA Mode
 <a name="io"></a>
-#### IO Formats
+##### IO Formats
 The input for Phertilizer in CNA Mode consists of four text based file:
   1. A tab or comma separated dataframe with unlabeled columns: chr snv cell variant_reads total_reads
   2. A tab or comma separated dataframe for binned reads counts for tumor cells with labeled columns: cell bin1 bin2 ... binl   
@@ -80,7 +80,7 @@ The ouput file options include:
 
 See `example/output` for examples of output files 1 through 4.   
 
-#### CNA Mode Usage
+##### CNA Mode Usage
     usage: run_phertilizer.py [-h] [-f FILE] [--bin_count_data BIN_COUNT_DATA] [--bin_count_normal BIN_COUNT_NORMAL]
                               [--snv_bin_mapping SNV_BIN_MAPPING] [-a ALPHA] [--min_cells MIN_CELLS] [--min_snvs MIN_SNVS]
                               [--min_frac MIN_FRAC] [-j ITERATIONS] [-s STARTS] [-d SEED] [--npass NPASS] [--radius RADIUS]
@@ -137,7 +137,7 @@ See `example/output` for examples of output files 1 through 4.
       -v, --verbose         Be verbose
 
 <a name="phertilizer"></a>
-#### CNA Mode Example
+##### CNA Mode Example
 
 Here we show an example of how to run `Phertilizer`.
 The input files are located in the `example/input` directory.

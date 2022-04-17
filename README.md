@@ -60,9 +60,9 @@ Phertilizer can be run in two modes:
 #### IO Formats
 The input for Phertilizer in CNA Mode consists of four text based file:
   1. A tab or comma separated dataframe with unlabeled columns: chr snv cell variant_reads total_reads
-  2. A tab or comma separated dataframe for binned reads counts for tumor cells with labeled columns: cell bin1 bin2 ... binl
+  2. A tab or comma separated dataframe for binned reads counts for tumor cells with labeled columns: cell bin1 bin2 ... binl   
      **Note: cell ids in binned read counts file should exactly match cell ids in the variant reads dataframe**
-  3. A tab or comma separated dataframe for binned reads counts for normal cells with labeled columns cell bin1 bin2 ... binl
+  3. A tab or comma separated dataframe for binned reads counts for normal cells with labeled columns cell bin1 bin2 ... binl    
      **Note: bin ids in file should exactly match binned read counts for tumor cells file**
   4. A comma separated dataframe with unlabeled columns: snv chr bin
  

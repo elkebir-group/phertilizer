@@ -172,7 +172,7 @@ class Phertilizer:
         a dictionary containing the processed input data 
     lamb ; int 
         minimum number of cells in a leaf in order to perform a tree operation
-    tau ; int 
+    tau : int 
         minimum number of SNVs in a leaf in order to perform a tree operation
     iterations : int
         maximum number of iterations for tree operations if convergence is not met
@@ -702,7 +702,7 @@ class Phertilizer:
                                         debug=self.debug,
                                     )
         
-        best_tree = lin_split.split(seed, self.include_cna)
+        best_tree = lin_split.sprout(seed, self.include_cna)
 
 
         return best_tree

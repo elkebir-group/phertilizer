@@ -73,8 +73,9 @@ def main(args):
     if args.tree_pickle is not None:
         pickle_save(grow_tree, args.tree_pickle)
 
-    pcell, pmut = ph.generate_results(grow_tree)
     cell_lookup, mut_lookup = ph.get_id_mappings()
+    pcell, pmut = grow_tree.generate_results(cell_lookup, mut_lookup)
+  
 
     if args.cell_lookup is not None:
         cell_lookup = cell_lookup.rename("cell_label")

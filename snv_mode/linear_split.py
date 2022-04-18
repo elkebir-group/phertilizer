@@ -390,7 +390,7 @@ class Linear_split():
                 
                 print(f"Normalized Likelihood: {like_norm}")
                 self.norm_like_list.append(like_norm)
-                self.run_helper_no_cna(best_tree.get_tip_cells(0), muts, weight, p)
+                self.run(best_tree.get_tip_cells(0), muts, weight, p)
 
             
 

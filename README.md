@@ -12,11 +12,12 @@ This is the Phertilizer code repository. The Phertilizer data repository is loca
 
   1. [Installation](#install)
      * [Using github](#compilation)
-          * [Dependencies](#pre-requisites)
+     * [Dependencies](#pre-requisites)
   2. [Usage instructions](#usage)
-     * [Modes](#modes)    
      * [I/O formats](#io)
-     * [CNA Mode](#cna-mode)
+     * [Modes](#modes)  
+      + [CNA Mode](#cna-mode)
+      + [SNV Mode](#snv-mode)
 
 <a name="install"></a>
 
@@ -41,6 +42,29 @@ This is the Phertilizer code repository. The Phertilizer data repository is loca
 <a name="usage"></a>
 ## Usage
 
+<a name="io"></a>
+### IO Formats
+The input for Phertilizer in CNA Mode consists of four text based file:
+  1. A tab or comma separated dataframe with unlabeled columns: chr snv cell variant_reads total_reads
+  2. A tab or comma separated dataframe for binned reads counts for tumor cells with labeled columns: cell bin1 bin2 ... binl   
+     **Note: cell ids in binned read counts file should exactly match cell ids in the variant reads dataframe**
+  3. A tab or comma separated dataframe for binned reads counts for normal cells with labeled columns cell bin1 bin2 ... binl    
+     **Note: bin ids in file should exactly match binned read counts for tumor cells file**
+  4. A comma separated dataframe with unlabeled columns: snv chr bin
+ 
+ See `example/input` for examples of all input files.  
+
+The ouput file options include:  
+  1. A png of the clonal tree with maximum posterior probability
+  2. A dataframe mapping cells to nodes
+  3. A dataframe mappping SNVs to nodes
+  4. A dataframe containing the CNA genotypes
+  5. A pickle file of the ouput clonal tree
+  6. A pickle file containing a ClonalTreeList of all enumerated clonal trees
+  7. A dataframe mapping the internal Phertilizer cell indices to cell labels
+  8. A  dataframe mapping the internal Phertilizer SNV indices to cell labels
+
+See `example/output` for examples of output files 1 through 4.  
 
 <a name="modes"></a>
 ### Modes
@@ -56,29 +80,6 @@ Phertilizer can be run in two modes:
 
 <a name="cna-mode"></a>
 #### CNA Mode
-<a name="io"></a>
-##### IO Formats
-The input for Phertilizer in CNA Mode consists of four text based file:
-  1. A tab or comma separated dataframe with unlabeled columns: chr snv cell variant_reads total_reads
-  2. A tab or comma separated dataframe for binned reads counts for tumor cells with labeled columns: cell bin1 bin2 ... binl   
-     **Note: cell ids in binned read counts file should exactly match cell ids in the variant reads dataframe**
-  3. A tab or comma separated dataframe for binned reads counts for normal cells with labeled columns cell bin1 bin2 ... binl    
-     **Note: bin ids in file should exactly match binned read counts for tumor cells file**
-  4. A comma separated dataframe with unlabeled columns: snv chr bin
- 
-See `example/input` for examples of all input files.  
-
-The ouput file options include:  
-  1. A png of the clonal tree with maximum posterior probability
-  2. A dataframe mapping cells to nodes
-  3. A dataframe mappping SNVs to nodes
-  4. A dataframe containing the CNA genotypes
-  5. A pickle file of the ouput clonal tree
-  6. A pickle file containing a ClonalTreeList of all enumerated clonal trees
-  7. A dataframe mapping the internal Phertilizer cell indices to cell labels
-  8. A  dataframe mapping the internal Phertilizer SNV indices to cell labels
-
-See `example/output` for examples of output files 1 through 4.   
 
 ##### CNA Mode Usage
     usage: run_phertilizer.py [-h] [-f FILE] [--bin_count_data BIN_COUNT_DATA] [--bin_count_normal BIN_COUNT_NORMAL]
@@ -136,17 +137,85 @@ See `example/output` for examples of output files 1 through 4.
                             output file that maps internal mutation index to the input mutation label
       -v, --verbose         Be verbose
 
-<a name="phertilizer"></a>
-##### CNA Mode Example
+<a name="snv-mode"></a>
+##### SNV Mode Example
 
-Here we show an example of how to run `Phertilizer`.
+Here we show an example of how to run `Phertilizer` in CNA Mode.
 The input files are located in the `example/input` directory.
 
 
     $ python cna_mode/run_phertilizer.py -f example/input/variant_counts.tsv  \
       --bin_count_data example/input/binned_read_counts.csv \
       --bin_count_normal example/input/normal_cells.tsv --snv_bin_mapping example/input/snv_bin_mapping.csv \
-      --min_cells 100 --min_snvs 100 -d 14 --tree example/output/tree.png -n example/output/cell_clusters.csv \
-      -m example/output/SNV_clusters.csv -e example/output/CNA_genotypes.csv 
+      --min_cells 100 --min_snvs 100 -d 14 --tree example/cna_mode_output/tree.png \
+      -n example/cna_mode_output/cell_clusters.csv \
+      -m example/cna_mode_output/SNV_clusters.csv -e example/cna_mode_output/CNA_genotypes.csv 
 
-This command generates output files `tree.png`, `cell_clusters.csv`, `SNV_clsuters.csv` and `CNA_genotypes.csv` in directory `example\output`.
+This command generates output files `tree.png`, `cell_clusters.csv`, `SNV_clsuters.csv` and `CNA_genotypes.csv` in directory `example\cna_mode_output`.
+
+##### SNV Mode Usage
+      usage: run_phertilizer.py [-h] -f FILE --bin_count_data BIN_COUNT_DATA [-a ALPHA] [--coverage COVERAGE]
+                              [--include_cna_events] [--min_cells MIN_CELLS] [--min_snvs MIN_SNVS] [--min_frac MIN_FRAC]
+                              [-j ITERATIONS] [-s STARTS] [--npass NPASS] [-d SEED] [--radius RADIUS] [-c COPIES]
+                              [-m PRED_MUT] [-n PRED_CELL] [-e PRED_EVENT] [--tree TREE] [--tree_pickle TREE_PICKLE]
+                              [--tree_path TREE_PATH] [--tree_list TREE_LIST] [--cell_lookup CELL_LOOKUP]
+                              [--mut_lookup MUT_LOOKUP] [--likelihood LIKELIHOOD] [-v]
+
+      optional arguments:
+      -h, --help            show this help message and exit
+      -f FILE, --file FILE  input dataframe file
+      --bin_count_data BIN_COUNT_DATA
+                              input dataframe file for copy number matrix
+      -a ALPHA, --alpha ALPHA
+                              per base read error rate
+      --coverage COVERAGE   coverage per base
+      --include_cna_events
+      --min_cells MIN_CELLS
+                              smallest number of cells required to form a clone
+      --min_snvs MIN_SNVS   smallest number of SNVs required to form a cluster
+      --min_frac MIN_FRAC   smallest proportion of total cells(snvs) needed to form a cluster, if min_cells or min_snvs
+                              are given, min_frac is ignored
+      -j ITERATIONS, --iterations ITERATIONS
+                              maximum number of iterations
+      -s STARTS, --starts STARTS
+                              number of restarts
+      --npass NPASS         number of clustering stopping heuristics to pass
+      -d SEED, --seed SEED  seed
+      --radius RADIUS
+      -c COPIES, --copies COPIES
+                              max number of copies
+      -m PRED_MUT, --pred-mut PRED_MUT
+                              output file mutation clusters
+      -n PRED_CELL, --pred_cell PRED_CELL
+                              output file cell clusters
+      -e PRED_EVENT, --pred_event PRED_EVENT
+                              output file cna genotypes
+      --tree TREE           output file for png (dot) of phertilizer tree after grow
+      --tree_pickle TREE_PICKLE
+                              output pickle of phertilizer tree after grow
+      --tree_path TREE_PATH
+                              path to directory where pngs of post-processed trees are saved
+      --tree_list TREE_LIST
+                              where to save the list of pre processed trees
+      --cell_lookup CELL_LOOKUP
+                              where to save the file that maps internal cell index to the input cell label
+      --mut_lookup MUT_LOOKUP
+                              where to save the file that maps internal mutation index to the input mutation label
+      --likelihood LIKELIHOOD
+                              where to save the file with the tree likelihood
+      -v, --verbose         Be verbose
+
+<a name="snv-example"></a>
+##### CNA Mode Example
+
+Here we show an example of how to run `Phertilizer` in SNV Mode.
+The input files are located in the `example/input` directory.
+
+
+    $ python snv_mode/run_phertilizer.py -f example/input/variant_counts.tsv \
+    --bin_count_data example/input/binned_read_counts.csv  --min_cells 100 --min_snvs 100 -d 14 \
+    --tree example snv_mode_output/tree.png -n example/snv_mode_output /cell_clusters.csv \
+    -m example/snv_mode_output/SNV_clusters.csv 
+
+This command generates output files `tree.png`, `cell_clusters.csv`, `SNV_clsuters.csv` and `CNA_genotypes.csv` in directory `example\snv_mode_output`.
+

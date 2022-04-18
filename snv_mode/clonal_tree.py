@@ -531,10 +531,8 @@ class ClonalTree:
     def generate_results(self, cell_lookup, mut_lookup):
         pcell = generate_cell_dataframe(self.cell_mapping, cell_lookup)
         pmut = generate_mut_dataframe(self.mut_mapping, mut_lookup)
-        ploss = generate_mut_dataframe(self.mut_loss_mapping, mut_lookup)
-        pevents = dict_to_dataframe(self.event_mapping)
-
-        return pcell, pmut, ploss, pevents
+       
+        return pcell, pmut
 
     def save_results(self, cell_lookup, mut_lookup, pcell_fname, pmut_fname, ploss_fname, pevents_fname):
         pcell, pmut, ploss, pevents = self.generate_results(

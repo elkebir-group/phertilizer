@@ -7,7 +7,7 @@ Phertilizer infers a clonal tree with SNV and CNA genotypes given ultra-low cove
 (b) Ultra-low coverage single-cell DNA seequencing produces total read counts and variant read countsfor n cells and m SNV loci, and read-depth ratios for the same cells for an input set of bins.
 (c) Phertilizer infers a cell clustering, SNV genotypes, CNA genotypes and a clonal tree  with maximum posterior probability.
 
-
+This is the Phertilizer code repository. The Phertilizer data repository is located at https://github.com/elkebir-group/phertilizer_data.
 ## Contents
 
   1. [Installation](#install)

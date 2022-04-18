@@ -48,7 +48,7 @@ The input for Phertilizer in CNA Mode consists of four text based file:
   1. A tab or comma separated dataframe with unlabeled columns: chr snv cell variant_reads total_reads
   2. A tab or comma separated dataframe for binned reads counts for tumor cells with labeled columns: cell bin1 bin2 ... binl   
      **Note: cell ids in binned read counts file should exactly match cell ids in the variant reads dataframe**
-  3. A tab or comma separated dataframe for binned reads counts for normal cells with labeled columns cell bin1 bin2 ... binl    
+  3. A tab or comma separated dataframe for binned reads counts for normal cells with labeled columns: cell bin1 bin2 ... binl    
      **Note: bin ids in file should exactly match binned read counts for tumor cells file**
   4. A comma separated dataframe with unlabeled columns: snv chr bin
  
@@ -137,8 +137,8 @@ Phertilizer can be run in two modes:
                             output file that maps internal mutation index to the input mutation label
       -v, --verbose         Be verbose
 
-<a name="snv-mode"></a>
-##### SNV Mode Example
+
+##### CNA Mode Example
 
 Here we show an example of how to run `Phertilizer` in CNA Mode.
 The input files are located in the `example/input` directory.
@@ -153,6 +153,9 @@ The input files are located in the `example/input` directory.
 
 This command generates output files `tree.png`, `cell_clusters.csv`, `SNV_clsuters.csv` and `CNA_genotypes.csv` in directory `example\cna_mode_output`.
 
+
+<a name="snv-mode"></a>
+#### SNV  Mode
 ##### SNV Mode Usage
       usage: run_phertilizer.py [-h] -f FILE --bin_count_data BIN_COUNT_DATA [-a ALPHA] [--coverage COVERAGE]
                               [--include_cna_events] [--min_cells MIN_CELLS] [--min_snvs MIN_SNVS] [--min_frac MIN_FRAC]
@@ -206,7 +209,7 @@ This command generates output files `tree.png`, `cell_clusters.csv`, `SNV_clsute
       -v, --verbose         Be verbose
 
 <a name="snv-example"></a>
-##### CNA Mode Example
+##### SNV Mode Example
 
 Here we show an example of how to run `Phertilizer` in SNV Mode.
 The input files are located in the `example/input` directory.

@@ -60,6 +60,7 @@ class Branching_split():
         parameter for the minimum value of the spectral gap between k=2 and k=1
     jump_percentage: float
         parameter for the minimum jump percentage to conclude that k > 1
+    
     Methods
     -------
 
@@ -73,7 +74,6 @@ class Branching_split():
         returns two arrays mutsA, mutsB based on the maximum likelihood with the node assignment of each SNV for 
         the fixed input assignment of cellsA
 
-
     create_affinity(cells, lamb= 0.5, mutsB=None)
         returns the edge weights w_ii' for the edge weights for the input graph to normalized min cut
 
@@ -84,8 +84,7 @@ class Branching_split():
     run()
         a helper method to assist with finding the maximum likelihood branching tree
 
-
-    sprout( seed, include_cna=True):
+    sprout( seed):
         main flow control to obtain the maximum likelihood branching tree from a given input seed
 
 
@@ -159,7 +158,6 @@ class Branching_split():
             self.var[np.ix_(cells, muts)], axis=1).reshape(-1, 1)
         mut_total_reads_by_cell = np.count_nonzero(
             self.total[np.ix_(cells, muts)], axis=1).reshape(-1, 1)
-        # na_cells = find_cells_with_no_reads(self.total, cells, muts)
         tmb = mut_var_count_by_cell/mut_total_reads_by_cell
 
         return tmb
@@ -292,7 +290,7 @@ class Branching_split():
                 print(cand_tree)
                 self.cand_trees.insert(cand_tree)
 
-    def sprout(self, include_cna):
+    def sprout(self):
         """ Driver function for performing a branched bipartition by looping over multiple
         restarts, multiple iterations and alternating between cell and mutation assignments
         to find the split that has the highest normalized likelihood.

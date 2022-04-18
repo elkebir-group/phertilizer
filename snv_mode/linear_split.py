@@ -433,7 +433,7 @@ class Linear_split():
 
     
 
-    def split(self, seed, infer_cna_events=True):
+    def sprout(self, seed):
     
         self.norm_like_list = []
  

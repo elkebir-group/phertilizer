@@ -292,25 +292,10 @@ class Phertilizer:
         like1_series = compute_like1(
             self.variant_count_data, 1, max_copies,  alpha, coeff_array)
         self.like1_marg = sparse_matrix(like1_series)
-        if self.include_cna:
-            self.like1 = {}
 
-            for s in self.states:
 
-                if s == "gain":
-                    min_copies = 3
-                    max_copies = max_copies
-                elif s == "loss":
-                    min_copies = 1
-                    max_copies = 1
-                else:
-                    min_copies = 2
-                    max_copies = 2
-
-                self.like1[s] = sparse_matrix(compute_like1(
-                    self.variant_count_data, min_copies, max_copies,  alpha, coeff_array))
-        else:
-            self.like1 = sparse_matrix(like1_series)
+  
+        self.like1 = sparse_matrix(like1_series)
 
         var = pd.Series(self.variant_count_data['var'].to_numpy(
         ), index=self.variant_count_data.index)
@@ -536,7 +521,7 @@ class Phertilizer:
                                       npass=self.npass,
                                       )
 
-        branching_tree = br_split.sprout(self.include_cna)
+        branching_tree = br_split.sprout()
 
         return branching_tree
 
@@ -563,10 +548,9 @@ class Phertilizer:
             copy_distance_matrix=self.copy_distance,
             radius=self.radius,
             npass=self.npass,
-            debug=self.debug,
         )
 
-        best_tree = lin_split.split(seed, self.include_cna)
+        best_tree = lin_split.sprout(seed)
 
         return best_tree
 

@@ -220,5 +220,5 @@ The input files are located in the `example/input` directory.
     --tree example snv_mode_output/tree.png -n example/snv_mode_output /cell_clusters.csv \
     -m example/snv_mode_output/SNV_clusters.csv 
 
-This command generates output files `tree.png`, `cell_clusters.csv`, `SNV_clsuters.csv` and `CNA_genotypes.csv` in directory `example\snv_mode_output`.
+This command generates output files `tree.png`, `cell_clusters.csv`, and `SNV_clsuters.csv` in directory `example\snv_mode_output`.
 

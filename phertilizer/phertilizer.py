@@ -348,25 +348,72 @@ class Phertilizer:
 
    
     def get_id_mappings(self):
+        '''Gets the mapping of the internal cell and SNV indices to the supplied labels
+
+        Returns
+        -------
+        cell_lookup
+            a pandas series with internal cell indices as the index and given cell labels as data
+        mut_lookup
+            a pandas series with internal SNV indices as the index and given SNV labels as data
+
+        '''
         return self.data.cell_lookup, self.data.mut_lookup
         
 
 
 
     def phertilize(self, 
-                    min_cell, 
-                    min_snvs,
-                    max_iterations, 
-                    starts,
-                    seed=10261982, 
+                    min_cell =200, 
+                    min_snvs = 200,
+                    max_iterations =10, 
+                    starts =3,
+                    seed=1026, 
                     radius=0.5, 
                     npass=1):
+        '''Recursively enumerates all clonal trees on the given input data and
+        identifies the clonal tree with maximum likelihood 
 
+        Parameters
+        ----------
+        min_cell : int
+            the minimum number of cells a leaf can contain to perform a tree operation
+            (default : 200)
+        
+        min_snvs : int 
+            the minimum number of cells a leaf can contain to perform a tree operation
+            (default : 200)
+        
+        max_iterations : int
+            the maximum number of iterations for each tree operation if convergence is not met
+            (default : 10)
+        
+        starts : int
+            the number of restarts to conduct within in each tree operation  (default : 3)
+        
+        seed : int
+            a seed to initialize the random number generator (default: 1026)
+        
+        radius : float
+            a parameter for determining similarity of rdr(bin_count) data between cells (default 0.5)
+        
+        npass : int
+            a parameter to determine the number of clustering heuristic tests to pass to
+            return accept the result of a tree operation (default: 1)
 
-        """Recursively builds a clonal tree with SNV/CNA genotypes and cells attached to nodes
+        Returns
+        -------
+        optimal_tree
+            a Clonal Tree object with maximum likelihood
+        
+        pre_proc_trees 
+            a ClonalTreeList object containing the enumeration of all clonal trees
+        
+        loglikelihoods
+            a pandas Series with the tree keys as index and the loglikelihood of each tree
 
-        :return: a clonal tree with maximum likelihood, a ClonalTreeList of all enumerated trees
-        """
+        '''
+
         self.rng = np.random.default_rng(seed)
         n = len(self.cells)
         if type(min_cell) == float:
@@ -429,6 +476,16 @@ class Phertilizer:
 
     
     def planting(self, seed_list):
+        '''Performs all possible elementary tree operations on every possible seed (leaf) node
+        and memoizes the results for enumerating the candidate set of clonal trees 
+
+        Parameters
+        ----------
+        seed_list : dequeue
+            a dequeue containing all initial seeds
+        
+
+        '''
 
         
         key = 0
@@ -484,6 +541,17 @@ class Phertilizer:
 
       
     def lookup_seed_key(self, seed):
+        '''finds a seed in the list of all explored seeds 
+
+        Parameters
+        ----------
+        seed : a Seed object to find in the list of explored seeds
+           
+        Returns
+        -------
+        s
+            a matching seed in the list of explored seeds
+        '''
 
         for s in self.explored_seeds:
             if self.explored_seeds[s] == seed:
@@ -491,6 +559,20 @@ class Phertilizer:
 
 
     def grow(self, max_trees=np.Inf):
+        '''Performs all possible elementary tree operations on every possible seed (leaf) node
+        and memoizes the results for enumerating the candidate set of clonal trees 
+
+        Parameters
+        ----------
+        max_trees : the maximum number of tree to construct
+           
+        Returns
+        -------
+        pre_proc_trees
+            a ClonalTreeList object containing all candidate clonal trees
+        '''
+
+        
 
 
         pre_proc_list = ClonalTreeList()
@@ -537,11 +619,19 @@ class Phertilizer:
 
 
     def sprout_branching(self,seed):
-        """performs a branching operation from a given input seed
-        @param: seed a Seed object containing cells, and SNVs
+        '''Performs a branching operation on a given seed
 
-        :return: an elementary branched clonal tree
-         """
+        Parameters
+        ----------
+        seed : Seed
+            a leaf node for which the operation should be performed
+           
+        Returns
+        -------
+        best_tree
+            a BranchingTree with the highest likelihood or None is no valid BranchingTree is found
+        '''
+
         print("Sprouting a branching tree..")  
         
         #perform a branching split
@@ -558,14 +648,19 @@ class Phertilizer:
 
         
     def sprout_linear(self, seed):
-        """performs a linear operation from a given input seed
-        @param: seed a Seed object containing cells, and SNVs
+        '''Performs a linear operation on a given seed
 
-        :return: an elementary linear clonal tree
-         """
-
-
-        print("Sprouting a linear tree from seed")    
+        Parameters
+        ----------
+        seed : Seed
+            a leaf node for which the operation should be performed
+           
+        Returns
+        -------
+        best_tree
+            a LinearTree with the highest likelihood or None is no valid LinearTree is found
+        '''
+        print("Sprouting a linear tree...")    
         lin_split =ls.Linear_split(     self.data,
                                         self.cna_genotype_mode,
                                         seed,
@@ -573,18 +668,24 @@ class Phertilizer:
                                         self.params,
                                     )
         
-        best_tree = lin_split.sprout(seed, )
+        best_tree = lin_split.sprout()
 
 
         return best_tree
        
 
     def sprout_identity(self, seed):
-        """performs an identity operation from a given input seed
-        @param: seed a Seed object containing cells, and SNVs
+        '''Performs an identity operation on a given seed
 
-        :return: an elementary identity clonal tree
-         """
+        Parameters
+        ----------
+        seed : Seed
+            a leaf node for which the operation should be performed
+           
+        Returns
+        -------
+        an identity tree from the given seed
+        '''
         events = None
         if self.cna_genotype_mode:
             events= self.cnn_hmm.run(seed.cells)

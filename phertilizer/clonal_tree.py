@@ -1083,7 +1083,7 @@ class ClonalTree:
 
 
 class LinearTree(ClonalTree):
-    def __init__(self, cellsA, cellsB, mutsA, mutsB, eA, eB, key = None):    
+    def __init__(self, cellsA, cellsB, mutsA, mutsB, eA=None, eB=None, key = None):    
         t = nx.DiGraph()
         t.add_node(0, ncells=len(cellsA))
         t.add_node(1, ncells=len(cellsB))
@@ -1094,8 +1094,10 @@ class LinearTree(ClonalTree):
         
         mm[0] = mutsA
         mm[1] =mutsB
-        em[0] = eA
-        em[1] = eB
+        if eA is not None:
+            em[0] = eA
+        if eB is not None:
+            em[1] = eB
         super().__init__(t, cm, mm, ml, em )
 
     def is_valid(self, lamb, tau):
@@ -1115,7 +1117,7 @@ class LinearTree(ClonalTree):
 
 
 class BranchingTree(ClonalTree):
-    def __init__(self, cellsA, cellsB, mutsA, mutsB,mutsC, eA, eB,eC=None, key = None):    
+    def __init__(self, cellsA, cellsB, mutsA, mutsB,mutsC, eA=None, eB=None,eC=None, key = None):    
         t = nx.DiGraph()
         t.add_node(0, ncells=0)
         t.add_node(1, ncells= len(cellsA))
@@ -1169,7 +1171,8 @@ class IdentityTree(ClonalTree):
         cm, mm, ml, em = {}, {}, {}, {}
         cm[0] = {0: cells}
         mm[0] = muts
-        em[0] = events
+        if events is not None:
+            em[0] = events
         super().__init__(t, cm, mm, ml, em )
 
 

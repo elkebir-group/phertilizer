@@ -11,7 +11,7 @@ class Params:
     jump_percentage : float = 0.075
     radius : float = 0.5
     npass : int = 1
-    def __post_init__():
+    def __post_init__(self):
         if self.radius > 1:
             self.radius = 1
         

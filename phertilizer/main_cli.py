@@ -4,7 +4,6 @@ import argparse
 import sys
 import pandas as pd 
 from phertilizer import Phertilizer
-import logging 
 from utils import pickle_save
 
 
@@ -26,7 +25,7 @@ def main(args):
     if args.bin_count_normal is not None:    
         if '.csv' in args.bin_count_normal:
             bin_count_normal = pd.read_csv(args.bin_count_normal)
-            logging.info(bin_count_normal.head())
+         
         else:
             bin_count_normal = pd.read_table(args.bin_count_normal)
     else:
@@ -174,14 +173,7 @@ if __name__ == "__main__":
         help="output file that maps internal cell index to the input cell label")
     parser.add_argument( "--mut_lookup", 
         help="output file that maps internal mutation index to the input mutation label")
-    parser.add_argument(
-        '-v', '--verbose',
-        help="Be verbose",
-        action="store_const", dest="loglevel", const=logging.INFO,
-    )
     args = parser.parse_args(None if sys.argv[1:] else ['-h'])
-  
-    logging.basicConfig(level=logging.INFO)
     
 
 main(args)

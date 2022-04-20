@@ -28,8 +28,7 @@ def binom_pdf(k,n,p, coeff):
     :param p: the probability of success
     :return: number. P(X=k), where X~Bin(n,p)
     """
-    #coeff= factorial(n)/(factorial(k)*factorial(n-k))
-    # coeff = binomial(n,k)
+   
     prob = coeff * (p**k) *(1-p)**(n-k)
     return prob
 

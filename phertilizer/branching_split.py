@@ -318,7 +318,7 @@ class Branching_split():
                 print(cand_tree)
                 self.cand_trees.insert(cand_tree)
 
-    def sprout(self, include_cna=True):
+    def sprout(self):
         """ Driver function for performing a branched bipartition by looping over multiple
         restarts, multiple iterations and alternating between cell and mutation assignments
         to find the split that has the highest normalized likelihood.

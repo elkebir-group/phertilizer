@@ -1,8 +1,6 @@
-
-
 import numpy as np
 import pandas as pd
-from gaussian_mixture import RDRGaussianMixture
+from gaussian_emissions import RDRGaussianMixture
 
 
 class CNA_HMM():

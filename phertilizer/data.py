@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 import numpy as np
 import pandas as pd
-from cna_events import CNA_HMM
+from phertilizer.cna_events import CNA_HMM
 
 @dataclass
 class Data:

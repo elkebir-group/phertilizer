@@ -3,8 +3,8 @@
 import argparse
 import sys
 import pandas as pd
-from phertilizer import Phertilizer
-from utils import pickle_save
+from phertilizer.phertilizer import Phertilizer
+from phertilizer.utils import pickle_save
 
 
 def main(args):

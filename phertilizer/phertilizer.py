@@ -1,18 +1,18 @@
 from copy import deepcopy
 import numpy as np
 import pandas as pd
-from cna_events import CNA_HMM
+from phertilizer.cna_events import CNA_HMM
 import scipy.special
 from scipy.spatial.distance import pdist, squareform
 import numba
-import branching_split as bs
-import linear_split as ls
-from seed import Seed
-from data import Data
-from params import Params
-from clonal_tree import IdentityTree
+import phertilizer.branching_split as bs
+import phertilizer.linear_split as ls
+from phertilizer.seed import Seed
+from phertilizer.data import Data
+from phertilizer.params import Params
+from phertilizer.clonal_tree import IdentityTree
 from collections import deque
-from clonal_tree_list import ClonalTreeList
+from phertilizer.clonal_tree_list import ClonalTreeList
 
 
 @numba.jit(nopython=True)

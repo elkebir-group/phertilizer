@@ -17,7 +17,7 @@ setuptools.setup(
     author_email='leahlw2@illinois.edu',
     python_requires='>=3.7',
     entry_points = {
-        'console_scripts': ['phertilizer= run:main_cli'],
+        'console_scripts': ['phertilizer= phertilizer.run:main_cli'],
     },
     install_requires=[
         "numpy",
@@ -25,7 +25,7 @@ setuptools.setup(
         "numba", 
         "scipy",
         "networkx",
-        "sklearn",
+        "scikit-learn",
         "pygraphviz",
     ],
 )

@@ -1,9 +1,9 @@
 
 
 import numpy as np
-from clonal_tree import LinearTree
-from clonal_tree_list import ClonalTreeList
-from utils import normalizedMinCut, check_stats, snv_kernel_width, cnv_kernel_width, impute_mut_features
+from phertilizer.clonal_tree import LinearTree
+from phertilizer.clonal_tree_list import ClonalTreeList
+from phertilizer.utils import normalizedMinCut, check_stats, snv_kernel_width, cnv_kernel_width, impute_mut_features
 import pandas as pd
 import logging
 from scipy.spatial.distance import pdist, squareform

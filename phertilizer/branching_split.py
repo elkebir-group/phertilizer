@@ -1,10 +1,10 @@
 import numpy as np
-from clonal_tree_list import ClonalTreeList
-from utils import normalizedMinCut, check_stats, snv_kernel_width, cnv_kernel_width, impute_mut_features, find_cells_with_no_reads, find_muts_with_no_reads
+from phertilizer.clonal_tree_list import ClonalTreeList
+from phertilizer.utils import normalizedMinCut, check_stats, snv_kernel_width, cnv_kernel_width, impute_mut_features, find_cells_with_no_reads, find_muts_with_no_reads
 from scipy.spatial.distance import pdist, squareform
 import pandas as pd
-from clonal_tree import BranchingTree
-from clonal_tree_list import ClonalTreeList
+from phertilizer.clonal_tree import BranchingTree
+from phertilizer.clonal_tree_list import ClonalTreeList
 
 
 class Branching_split():

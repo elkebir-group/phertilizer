@@ -2,9 +2,9 @@ from copy import deepcopy
 import numpy as np
 import pandas as pd
 import networkx as nx
-from seed import Seed
-from draw_clonal_tree import DrawClonalTree
-from utils import get_next_label, dict_to_series, pickle_save, generate_cell_dataframe, generate_mut_dataframe, dict_to_dataframe
+from phertilizer.seed import Seed
+from phertilizer.draw_clonal_tree import DrawClonalTree
+from phertilizer.utils import get_next_label, dict_to_series, pickle_save, generate_cell_dataframe, generate_mut_dataframe, dict_to_dataframe
 from collections import Counter
 from itertools import product, chain, combinations
 

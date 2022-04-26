@@ -242,19 +242,21 @@ class Phertilizer:
         mut_series = pd.Series(data=self.muts, index =mut_labels )
         mut_lookup = pd.Series(data=mut_labels, index=self.muts)
 
-        variant_count_data['mutation'] = self.mut_series[variant_count_data['chr_mutation']].values
-        variant_count_data['cell'] = self.cell_series[variant_count_data['cell_id']].values
-        self.variant_count_data = variant_count_data
-        self.variant_count_data= self.variant_count_data.set_index(["cell", "mutation"])
+        variant_count_data['mutation'] = mut_series[variant_count_data['chr_mutation']].values
+        variant_count_data['cell'] = cell_series[variant_count_data['cell_id']].values
+        
+        variant_count_data= variant_count_data.set_index(["cell", "mutation"])
 
-        snv_bin_mapping['chr_mutation'] = snv_bin_mapping['chr'].astype('str') + "_" + \
-            snv_bin_mapping['mutation_id'].astype(str)      
-        snv_bin_mapping['mutation'] = mut_series.loc[self.snv_bin_mapping['chr_mutation']].values     
-        snv_bin_mapping = snv_bin_mapping.set_index("mutation").sort_index()
-        snv_bin_mapping = snv_bin_mapping['bin']
+     
 
     
         if self.cna_genotype_mode:
+            snv_bin_mapping['chr_mutation'] = snv_bin_mapping['chr'].astype('str') + "_" + \
+            snv_bin_mapping['mutation_id'].astype(str)      
+            snv_bin_mapping['mutation'] = mut_series.loc[snv_bin_mapping['chr_mutation']].values     
+            snv_bin_mapping = snv_bin_mapping.set_index("mutation").sort_index()
+            snv_bin_mapping = snv_bin_mapping['bin']
+
             bin_count_data['cell_index'] = cell_series[bin_count_data['cell']].values
             bin_count_data.sort_values(by=['cell_index'])
 
@@ -272,7 +274,7 @@ class Phertilizer:
             bins = np.arange(0, bin_normal.shape[0])
             bin_mapping = pd.Series(data=bin_normal.index, index=bins)
 
-            bin_locs = self.bin_mapping.to_list()
+            bin_locs = bin_mapping.to_list()
             chromosomes = [c.split(".")[0] for c in bin_locs]
             chromosomes = [int(c[3:]) for c in chromosomes]
             chrom_series = pd.Series(chromosomes, bin_mapping.index)
@@ -325,11 +327,11 @@ class Phertilizer:
                     min_copies = 2
                     max_copies = 2
 
-                like1_dict[s] = sparse_matrix(compute_like1(self.variant_count_data, min_copies, max_copies,  alpha, coeff_array))
+                like1_dict[s] = sparse_matrix(compute_like1(variant_count_data, min_copies, max_copies,  alpha, coeff_array))
 
-        var= sparse_matrix(pd.Series(self.variant_count_data['var'].to_numpy(), index=self.variant_count_data.index))
+        var= sparse_matrix(pd.Series(variant_count_data['var'].to_numpy(), index=variant_count_data.index))
     
-        total= sparse_matrix(pd.Series(self.variant_count_data['total'].to_numpy(), index=self.variant_count_data.index))
+        total= sparse_matrix(pd.Series(variant_count_data['total'].to_numpy(), index=variant_count_data.index))
        
         self.params = Params()
         
@@ -341,7 +343,8 @@ class Phertilizer:
                         like1_marg,
                         like1_dict,
                         copy_distance,
-                        cnn_hmm
+                        cnn_hmm,
+                        snv_bin_mapping
                         )
     
 
@@ -450,10 +453,8 @@ class Phertilizer:
 
         self.mapping_list = {}
         self.explored_seeds = {}
-       
-      
-     
-        print(f"Phertilizing a tree with n: {len(self.cells)} cells and m: {len(self.muts)} SNVs")
+             
+        print(f"\nPhertilizing a tree with n: {len(self.cells)} cells and m: {len(self.muts)} SNVs")
 
         #planting phase
         print("\nStarting planting phase....")
@@ -485,7 +486,6 @@ class Phertilizer:
         
 
         '''
-
         
         key = 0
     
@@ -505,7 +505,7 @@ class Phertilizer:
             self.mapping_list[key] = []
 
                    
-            sprout_list = [ self.sprout_branching, self.sprout_linear]
+            sprout_list = [  self.sprout_linear, self.sprout_branching]
 
             for sprout in sprout_list:
 
@@ -516,22 +516,22 @@ class Phertilizer:
                 tree = sprout(curr_seed)
 
               
-                print("Sprouted tree:")
-                print(tree)
+              
                 if tree is not None:
                     
-                    if tree.is_valid(self.lamb, self.tau):
+                    if tree.is_valid(self.params.lamb, self.params.tau):
+                        print("\nSprouted tree:")
+                        print(tree)
              
                         self.mapping_list[key].append(tree)
                         new_seeds = tree.get_seeds(self.params.lamb, self.params.tau, curr_seed.ancestral_muts)
                         for seed in new_seeds:
-                            print(seed)
                             seed_list.append(seed)
                     else:
-                        print(f"{sprout} Not Valid!")
+                        print("Inferred elementary tree not valid!")
                         
                 else:
-                    print(f"{sprout} invalid")
+                    print("No inferred elementary tree.")
                     
            
             print(f"Number of subproblems remaining: {len(seed_list)}")
@@ -591,7 +591,7 @@ class Phertilizer:
                     leaf_nodes = curr_tree.get_leaves()
                     for l in leaf_nodes:
                         anc_muts = curr_tree.get_ancestral_muts(l)
-                        seed = curr_tree.get_seed_by_node(l, self.lamb, self.tau, anc_muts)
+                        seed = curr_tree.get_seed_by_node(l, self.params.lamb, self.params.tau, anc_muts)
                         if seed is None:
                             continue
                         seed_key = self.lookup_seed_key(seed)
@@ -631,7 +631,7 @@ class Phertilizer:
             a BranchingTree with the highest likelihood or None is no valid BranchingTree is found
         '''
 
-        print("Sprouting a branching tree..")  
+        print("\nSprouting a branching tree..")  
         
         #perform a branching split
         br_split = bs.Branching_split(self.data,
@@ -659,7 +659,7 @@ class Phertilizer:
         best_tree
             a LinearTree with the highest likelihood or None is no valid LinearTree is found
         '''
-        print("Sprouting a linear tree...")    
+        print("\nSprouting a linear tree...")    
         lin_split =ls.Linear_split(     self.data,
                                         self.cna_genotype_mode,
                                         seed,

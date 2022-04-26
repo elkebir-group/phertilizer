@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import numpy as np
 import pandas as pd
+from cna_events import CNA_HMM
 
 @dataclass
 class Data:
@@ -13,5 +14,6 @@ class Data:
     like1_dict : dict = None
     copy_distance : np.array = None
     cna_hmm : CNA_HMM = None
+    snv_bin_mapping : pd.Series = None
 
 

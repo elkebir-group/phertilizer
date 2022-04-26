@@ -45,48 +45,39 @@ class Branching_split():
         parameter for the minimum value of the spectral gap between k=2 and k=1
     jump_percentage: float
         parameter for the minimum jump percentage to conclude that k > 1
+    
     Methods
     -------
 
-    random_init(array, p)
-        returns input array split into two arrays where entries have probability p of being in the first array
+    random_init(array)
+        splits the given array into three parts uniformly at random
 
     calc_tmb(cells, muts)
         calculate the binary tumor mutational burden for each of the input cells over the set of input SNVs
 
     mut_assignment( cellsA, muts)
-        returns two arrays mutsA, mutsB based on the maximum likelihood with the node assignment of each SNV for 
+        returns three arrays (mutsA, mutsB, mutsC) based on the maximum likelihood with the node assignment of each SNV for 
         the fixed input assignment of cellsA
 
     mut_assignment_with_cna( cellsA, muts)
         returns two arrays mutsA, mutsB based on the maximum likelihood with the node assignment, considering the current
         CNA genotype of each SNV for the fixed input assignment of cellsA
 
-
-    create_affinity(cells, lamb= 0.5, mutsB=None)
+    create_affinity(mutsA, mutsB, cells)
         returns the edge weights w_ii' for the edge weights for the input graph to normalized min cut
 
     cluster_cells( cells, mutsB, weight=0.5)
-        clusters an input set of cells into cellsA and cellsB using normalized min cut on a graph with edge
+        clusters an input set of cells into cellsA and cellsB using normalized cut on a graph with edge
         weights mixing SNV and CNA features
 
     assign_cna_events(cellsA, cellsB)
         use the precomputed cnn_hmm to compute the most likely CNA genotypes for the given cell clusters cellsA, cellsB
 
-    run_helper_with_cna( cells, muts, weight, p)
-        a helper method to assist with finding recursively finding the maximum likelihood branching tree
+    run()
+         a helper method to add candidate branching for each restart
 
-    best_norm_like(tree_list, norm_like_list)
-        for a given candidate ClonalTreeList of linear trees, identify and return the tree with maximum normalized likelihood
-
-
-    compute_norm_likelihood(cellsA, cellsB, mutsA, mutsB):
-        for a given cell and mutation partition, compute the normalized likelihood by excluding the mutsB, cellsB partitions
-        and normalizing by the total observations
-
-
-    sprout( seed, include_cna=True):
-        main flow control to obtain the maximum likelihood branching tree from a given input seed
+    sprout()
+        main flow control to obtain the maximum likelihood branching tree
 
 
     """
@@ -127,18 +118,49 @@ class Branching_split():
                 m: self.data.snv_bin_mapping.loc[m] for m in self.data.snv_bin_mapping.index}
 
     def random_init(self, arr):
-        """Randomly splits an input array
+        ''' uniformly at random splits a given array into three parts (A,B,C)
 
-        :return: three numpy arrays containing the disjoint partition of the input array
-        """
+        Parameters
+        ----------
+        arr : np.array
+            the array to be partitioned into three parts
 
-        rand_vals = self.rng[0].random(arr.shape[0])
+
+        Returns
+        -------
+        arrA : np.array
+            a partition of the input array
+        arrB : np.array
+            a partition of the input array
+        arrC: np.array
+            a partition of the input array
+
+        '''
+
+        rand_vals = self.rng.random(arr.shape[0])
         arrA = arr[rand_vals < 1/3]
         arrB = arr[rand_vals > 2/3]
         arrC = np.setdiff1d(arr, np.concatenate([arrA, arrB]))
         return arrA, arrB, arrC
 
     def calc_tmb(self, cells, muts):
+        ''' calculates the binary tumor mutational burden (tmb) of the given SNVs for each cell
+
+        Parameters
+        ----------
+        cells : np.array
+            the array of cell indices for which the tmb needs to be calcualted
+        muts : np.array
+            the SNVs to include in the tmb calculations
+
+
+        Returns
+        -------
+        tmb : np.array
+            the binary tumor mutational burden for each cell 
+ 
+
+        '''
 
         mut_var_count_by_cell = np.count_nonzero(
             self.data.var[np.ix_(cells, muts)], axis=1).reshape(-1, 1)
@@ -150,6 +172,28 @@ class Branching_split():
         return tmb
 
     def create_affinity(self,  mutsA, mutsB, cells):
+        '''   computes the edge weights w_ii' for the edge weights for the input graph to normalized min cut
+
+        Parameters
+        ----------
+        mutsA : np.array
+            the current set of mutsA to include in the SNV features
+        mutsB : np.array
+            the current set of mutsB to include in the SNV features
+        cells : np.array
+            the set of cell indices to represent nodes of the graph
+
+
+        Returns
+        -------
+        kernel : np.array
+            a cell x cell matrix containing the edge weights of the graph
+        mut_features_df : pd.Dataframe
+            a pandas datframe containing the calculated mutsA and mutsB features for each cell
+ 
+
+        '''
+      
 
         if len(mutsA) > 0 and len(mutsB) > 0:
             tmb_mb = self.calc_tmb(cells, mutsB)
@@ -222,6 +266,30 @@ class Branching_split():
         return mutsA, mutsB, mutsC
 
     def cluster_cells(self, mutsA, mutsB, cells):
+        '''   clusters an input set of cells into cellsA and cellsB using normalized min cut on a graph with edge
+        weights mixing SNV and CNA features
+
+        Parameters
+        ----------
+        mutsA : np.array
+            the current set of mutsA to include in the SNV features
+        mutsB : np.array
+            the current set of mutsB to include in the SNV features
+        cells : np.array
+            the set of cell indices to cluster into two partitions
+
+
+        Returns
+        -------
+        cellsA : np.array
+            the cell indices of the first cluster
+        cellsB : n.array
+            the cell indices of the second cluster
+        stats : dict
+            a dictionary containing the values of the stopping heuristics
+
+        '''
+
 
         W, mut_features = self.create_affinity(mutsA, mutsB, cells)
         if W is None:
@@ -252,11 +320,26 @@ class Branching_split():
         return cellsA, cellsB, stats
 
     def mut_assignment(self, cellsA, cellsB):
-        """ Updates the assignment of mutations to mutsA or mutsB by comparing 
-        the likelihood based off the cells currently assigned to cellsA and cellsB.
+        '''    returns three arrays (mutsA, mutsB, mutsC) based on the maximum likelihood with the node assignment of each SNV for 
+        the fixed input assignment of cellsA
 
-        :return: a numpy arrays contain the mutation ids in mutsA and mutsB
-        """
+        Parameters
+        ----------
+        cellsA : np.array
+            the cell indices in the first cluster
+       cellsB : np.array
+            the cell indices in the second cluster
+
+        Returns
+        -------
+        mutsA : np.array
+            the SNV indices in the left child
+        mutsB : np.array
+            the SNV indices in the right child
+        mutsC : np.array
+             the SNV indices in the parent
+
+        '''
 
         like1 = self.data.like1_marg
 
@@ -282,6 +365,28 @@ class Branching_split():
         return np.array(mutsA), np.array(mutsB), np.array(mutsC)
 
     def assign_cna_events(self, cellsA, cellsB):
+        '''    use the precomputed hmm to compute the most likely CNA genotypes for the 
+        given cell clusters cellsA, cellsB
+
+
+        Parameters
+        ----------
+        cellsA : np.array
+            the cell indices in the first cluster
+       cellsB : np.array
+            the cell indices in the second cluster
+
+
+        Returns
+        -------
+        eventsA : dict
+            a dictionary mapping a CNA genotype state to a set of bins for the cells in first cluster
+        eventsB : np.array
+            a dictionary mapping a CNA genotype state to a set of bins for the cells in second cluster
+
+
+        '''
+
         eventsA, eventsB = None, None
         if self.cna_genotype_mode:
             eventsA = self.data.cna_hmm.run(cellsA)
@@ -291,6 +396,11 @@ class Branching_split():
         return eventsA, eventsB
 
     def run(self):
+        '''   a helper method to add candidate branching for each restart
+
+        '''
+
+
 
         cells = self.cells
         muts = self.muts
@@ -315,17 +425,16 @@ class Branching_split():
 
                 cand_tree = BranchingTree(
                     cellsA, cellsB, mutsA, mutsB, mutsC, eA, eB, eC=None)
-                print(cand_tree)
                 self.cand_trees.insert(cand_tree)
 
     def sprout(self):
-        """ Driver function for performing a branched bipartition by looping over multiple
-        restarts, multiple iterations and alternating between cell and mutation assignments
-        to find the split that has the highest normalized likelihood.
-
-
-        :returns a dictionary of cell assignments, a dictionary of mutation assignments
-        and the normalized likelihood. 
+        """ main flow control to obtain the maximum likelihood branching tree
+        
+        Returns
+        -------
+        best_branching_tree : BranchingTree
+            a BranchingTree with maximum likelihood among all restarts
+      
         """
 
         self.cand_trees = ClonalTreeList()

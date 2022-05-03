@@ -626,9 +626,6 @@ class ClonalTree:
 
         m = like0.shape[1]
         cells = self.get_tip_cells(node)
-        # ancestral_muts = self.get_ancestral_muts(node)
-        # muts = self.get_tip_muts(node)
-        # all_muts =
         like0 = like0[cells, :]
 
         y = self.presence_by_node(m, cells, node)
@@ -641,13 +638,10 @@ class ClonalTree:
         states = np.unique(z)
 
         for s in states:
-            # if np.any(z==s):
-            # event_mask = z == s
             like1_event = like1[s][cells, :]
             mask = np.logical_or(y != 1, z != s)
             if np.all(mask):
                 continue
-            # mask = np.logical_not(np.logical_and(presence_mask, event_mask))
             like1_event_like = np.ma.array(like1_event, mask=mask).sum()
 
             loglikelihood += like1_event_like
@@ -790,16 +784,3 @@ class IdentityTree(ClonalTree):
     def get_seeds(self, lamb, tau, ancestral_muts=None):
         return []
 
-    # def rdr_likelihood(self, cnn_hmm):
-    #     cell_series_list = []
-    #     total = 0
-    #     for n in self.tree.nodes():
-    #         cells = self.get_tip_cells(n)
-    #         if len(cells) > 0:
-    #             node_total, cell_series = self.rdr_likelihood_by_node(n, cnn_hmm)
-    #             total += node_total
-    #             cell_series_list.append(cell_series)
-
-    #     cell_series = pd.concat(cell_series_list).sort_index()
-
-    #     return total, cell_series

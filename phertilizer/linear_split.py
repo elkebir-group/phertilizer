@@ -17,28 +17,14 @@ class Linear_split():
 
     Attributes
     ----------
-    like0: : np.array
-        precomputed likelihood given y=0
-    like1_marg : np.array
-        precomputed likelihood given y=1 and latent vafs marginalized over all possibilities
-    like1_dict: dict
-        a dictionary indexed by state s of precomputed likelihoods given y=1 and z=s
-    var: np.array
-        an n x m array containing the variant read counts for each cell and SNV
-    copy_distance : np.array
-        a precomputed n x n array of RDR distances for each cell i in [n]
-    total: np.array
-        an n x m array containing the  total read counts for each cell and SNV
-    cnn_hmm : CNA_HMM object
-        a prefit hidden Markov model for CNA genotypes
-    snv_bin_mapping: pandas series
-        a mapping of each SNV to bin
+    data : Data
+        an object of class Data that contains preprocessed input data for Phertilizer
     states : tuple
         the names of allowable CNA genotype states ("gain", "loss", "neutral")
     cells : np.array
-        the cell indices to be included in the linear tree operation
+        the cell indices to be included in the tree operation
     muts : np.array
-       the SNV indices to be included in the linear tree operation
+       the SNV indices to be included in the tree operation
     rng ; random number generator
         random number generator to use for initialization
     lamb : int 
@@ -61,9 +47,7 @@ class Linear_split():
         parameter for the minimum value of the spectral gap between k=2 and k=1
     jump_percentage: float
         parameter for the minimum jump percentage to conclude that k > 1
-
-
-
+    
     Methods
     -------
 
@@ -150,20 +134,53 @@ class Linear_split():
         self.cnn_hmm = data.cna_hmm
 
     def random_init_array(self, array, p):
-        """Randomly initialize two arrays
+        ''' uniformly at random splits a given array into two parts (A,B)
 
-        :return: two numpy arrays created from the original array with the first having success probability p and the second (1-p)
-        """
+        Parameters
+        ----------
+        arr : np.array
+            the array to be partitioned into three parts
+        p : float
+            the probability of being in the "A" array
+
+
+        Returns
+        -------
+        arrA : np.array
+            a partition of the input array
+        arrB : np.array
+            a partition of the input array
+
+        '''
+
         rand_vals = self.rng.random(len(array))
         arrA = array[rand_vals <= p]
         arrB = array[rand_vals > p]
         return arrA, arrB
 
     def random_weighted_init_array(self, cells, muts,  p):
-        """Randomly initialize two arrays
+        ''' weighted random splits a given array into two parts (A,B)
 
-        :return: two numpy arrays created from the original array with the first having success probability p and the second (1-p)
-        """
+        Parameters
+        ----------
+        cells : np.array
+            the cell indices to be used in calculating the weight
+        muts : np.array
+            the SNV indices to be partitioned
+        p : float
+            the probability of being in the "A" array
+
+
+        Returns
+        -------
+        arrA : np.array
+            a partition of the input array
+        arrB : np.array
+            a partition of the input array
+
+        '''
+
+
         binary_counts = np.count_nonzero(self.var[np.ix_(cells, muts)], axis=0)
         binary_tcounts = np.count_nonzero(
             self.total[np.ix_(cells, muts)], axis=0)
@@ -182,12 +199,26 @@ class Linear_split():
         return mutsA, mutsB
 
     def mut_assignment(self, cellsA, muts):
-        """ Updates the assignment of mutations to mutsA or mutsB by comparing 
-        the likelihood based off the cells currently assigned to cellsA/
+        '''    returns two arrays (mutsA, mutsB) based on the maximum likelihood with the node assignment of each SNV for 
+        the fixed input assignment of cellsA
 
-        :param cellsA the set of Ca cells to use to find Mb
-        :return: numpy arrays contain the mutation ids in mutsA and mutsB
-        """
+        Parameters
+        ----------
+        cellsA : np.array
+            the cell indices in the first cluster
+        muts : np.array
+            the SNV indicies to be partitioned
+
+        Returns
+        -------
+        mutsA : np.array
+            the SNV indices in the parent
+        mutsB : np.array
+            the SNV indices in the child
+
+
+        '''
+
 
         like0_array = self.like0[np.ix_(cellsA, muts)].sum(axis=0)
         like1_array = self.like1[np.ix_(cellsA, muts)].sum(axis=0)
@@ -237,6 +268,26 @@ class Linear_split():
         return mutsA, mutsB
 
     def create_affinity(self, cells, mutsB=None):
+        '''   computes the edge weights w_ii' for the edge weights for the input graph to normalized min cut
+
+        Parameters
+        ----------
+        cells : np.array
+            the set of cell indices to represent nodes of the graph
+        mutsB : np.array
+            the current set of mutsB to include in the SNV features
+
+
+
+        Returns
+        -------
+        kernel : np.array
+            a cell x cell matrix containing the edge weights of the graph
+        mb_mut_count_series : pd.Series
+            a pandas series containing the calculated  mutsB features for each cell
+ 
+
+        '''
 
         if mutsB is not None:
 
@@ -275,6 +326,27 @@ class Linear_split():
             return None, None
 
     def cluster_cells(self, cells, mutsB):
+        '''   clusters an input set of cells into cellsA and cellsB using normalized min cut on a graph with edge
+        weights mixing SNV and CNA features
+
+        Parameters
+        ----------
+        mutsB : np.array
+            the current set of mutsB to include in the SNV features
+        cells : np.array
+            the set of cell indices to cluster into two partitions
+
+
+        Returns
+        -------
+        cellsA : np.array
+            the cell indices of the first cluster
+        cellsB : n.array
+            the cell indices of the second cluster
+        stats : dict
+            a dictionary containing the values of the stopping heuristics
+
+        '''
 
         W, mb_count_series = self.create_affinity(cells, mutsB)
         if W is None:
@@ -305,6 +377,28 @@ class Linear_split():
         return cellsA, cellsB, stats
 
     def assign_cna_events(self, cellsA, cellsB):
+        '''    use the precomputed hmm to compute the most likely CNA genotypes for the 
+        given cell clusters cellsA, cellsB
+
+
+        Parameters
+        ----------
+        cellsA : np.array
+            the cell indices in the first cluster
+        cellsB : np.array
+            the cell indices in the second cluster
+
+
+        Returns
+        -------
+        eventsA : dict
+            a dictionary mapping a CNA genotype state to a set of bins for the cells in first cluster
+        eventsB : np.array
+            a dictionary mapping a CNA genotype state to a set of bins for the cells in second cluster
+
+
+        '''
+    
         eA, eB = None, None
         if self.cna_genotype_mode:
             eA = self.cnn_hmm.run(cellsA)
@@ -314,6 +408,22 @@ class Linear_split():
         return eA, eB
 
     def run(self, cells, muts, p):
+        '''     a helper method to add candidate linear tree for each restart
+
+
+        Parameters
+        ----------
+        cells : np.array
+            the cell indices to be partitioned
+        cellsB : np.array
+            the SNV indices  to be partioned
+        p : float
+            the probability parameter to use for random intiialization
+
+
+        '''
+
+
         if len(cells) > 2*self.lamb:
             internal_tree_list = ClonalTreeList()
             norm_list = []
@@ -374,6 +484,31 @@ class Linear_split():
         return best_tree_like
 
     def compute_norm_likelihood(self, cellsA, cellsB, mutsA, mutsB):
+        '''    calculated the normalized variant log likelihood for the 
+                given partition
+
+
+        Parameters
+        ----------
+        cellsA : np.array
+            the cell indices in the first cluster
+        cellsB : np.array
+            the cell indices in the second cluster
+        mutsA : np.array
+            the SNV indices in the first cluster
+        mutsB : np.array
+            the SNV indices in the second cluster
+
+
+        Returns
+        -------
+        norm_like : float
+           the normalized likelihood of the partitions, excluding the cellsB/mutsB 
+           partition
+
+
+        '''
+
 
         total_like = self.like0[np.ix_(cellsA, mutsB)].sum(
         ) + self.like1[np.ix_(self.cells, mutsA)].sum()
@@ -385,6 +520,14 @@ class Linear_split():
         return norm_like
 
     def sprout(self):
+        """ main flow control to obtain the maximum likelihood linear tree
+        
+        Returns
+        -------
+        best_tree_like : LinearTree
+            a LinearTree with maximum normalized likelihood among all restarts
+      
+        """
 
         self.norm_like_list = []
 

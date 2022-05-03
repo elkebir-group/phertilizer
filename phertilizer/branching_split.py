@@ -189,7 +189,7 @@ class Branching_split():
         kernel : np.array
             a cell x cell matrix containing the edge weights of the graph
         mut_features_df : pd.Dataframe
-            a pandas datframe containing the calculated mutsA and mutsB features for each cell
+            a pandas dataframe containing the calculated mutsA and mutsB features for each cell
  
 
         '''
@@ -373,7 +373,7 @@ class Branching_split():
         ----------
         cellsA : np.array
             the cell indices in the first cluster
-       cellsB : np.array
+        cellsB : np.array
             the cell indices in the second cluster
 
 

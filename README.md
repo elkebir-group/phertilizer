@@ -1,5 +1,6 @@
 ## Phertilizer: growing a clonal tree from ultra-low coverage single-cell DNA sequencing data of tumors
-For more details, see doi: https://doi.org/10.1101/2022.04.18.488655.
+[![Anaconda-Server Badge](https://anaconda.org/bioconda/phertilizer/badges/version.svg)](https://anaconda.org/bioconda/phertilizer) [![Anaconda-Server Badge](https://anaconda.org/bioconda/phertilizer/badges/installer/conda.svg)](https://conda.anaconda.org/bioconda) [![Anaconda-Server Badge](https://anaconda.org/bioconda/phertilizer/badges/license.svg)](https://anaconda.org/bioconda/phertilizer)
+For more details, see: https://doi.org/10.1101/2022.04.18.488655.
 
 
 
@@ -13,6 +14,7 @@ This is the Phertilizer code repository. The Phertilizer data repository is loca
 ## Contents
 
   1. [Installation](#install)
+     * [Using conda](#conda)
      * [Using github](#compilation)
      * [Dependencies](#pre-requisites)
   2. [I/O formats](#io)
@@ -24,7 +26,15 @@ This is the Phertilizer code repository. The Phertilizer data repository is loca
 <a name="install"></a>
 
 ## Installation
-
+<a name="conda"></a>
+### Using conda (recommended)
+ Phertilizer is available as a package from bioconda. Installing via conda will also install all required dependencies.  
+  ```bash
+            $ conda install -c bioconda phertilizer 
+  ```
+  
+<a name="compilation"></a> 
+### Using github
    1. Clone the repository
       ```bash
             $ git clone https://github.com/elkebir-group/phertilizer.git
@@ -35,7 +45,7 @@ This is the Phertilizer code repository. The Phertilizer data repository is loca
 
 
 <a name="pre-requisites"></a>
-#### Pre-requisites
+### Dependencies
 + python3 (>=3.7)
 + [numpy](https://numpy.org/doc/)
 + [pandas](https://pandas.pydata.org/pandas-docs/stable/index.html)

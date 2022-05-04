@@ -1,5 +1,6 @@
 ## Phertilizer: growing a clonal tree from ultra-low coverage single-cell DNA sequencing data of tumors
-[![Anaconda-Server Badge](https://anaconda.org/bioconda/phertilizer/badges/version.svg)](https://anaconda.org/bioconda/phertilizer) [![Anaconda-Server Badge](https://anaconda.org/bioconda/phertilizer/badges/installer/conda.svg)](https://conda.anaconda.org/bioconda) [![Anaconda-Server Badge](https://anaconda.org/bioconda/phertilizer/badges/license.svg)](https://anaconda.org/bioconda/phertilizer)
+[![Anaconda-Server Badge](https://anaconda.org/bioconda/phertilizer/badges/version.svg)](https://anaconda.org/bioconda/phertilizer) [![Anaconda-Server Badge](https://anaconda.org/bioconda/phertilizer/badges/installer/conda.svg)](https://conda.anaconda.org/bioconda) [![Anaconda-Server Badge](https://anaconda.org/bioconda/phertilizer/badges/license.svg)](https://anaconda.org/bioconda/phertilizer)   
+
 For more details, see: https://doi.org/10.1101/2022.04.18.488655.
 
 

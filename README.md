@@ -158,7 +158,7 @@ Here we show an example of how to run `Phertilizer` in CNA Mode.
 The input files are located in the `example/input` directory.
 
 
-    $ pphertilizer -f example/input/variant_counts.tsv  \
+    $ phertilizer -f example/input/variant_counts.tsv  \
       --bin_count_data example/input/binned_read_counts.csv \
       --bin_count_normal example/input/normal_cells.tsv --snv_bin_mapping example/input/snv_bin_mapping.csv \
       --min_cells 100 --min_snvs 100 -d 14 --tree example/cna_mode_output/tree.png \

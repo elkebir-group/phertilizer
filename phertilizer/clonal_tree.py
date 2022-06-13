@@ -460,12 +460,12 @@ class ClonalTree:
 
         return self.node_events
 
-    def get_ancestor_pairs(self) -> Counter:
+    def get_ancestor_pairs(self, include_loss: bool=True) -> Counter:
         pairs = Counter()
         for node in self.tree.nodes:
             for children in nx.dfs_successors(self.tree, source=node).values():
                 for child in children:
-                    if node in self.mut_loss_mapping:
+                    if include_loss and node in self.mut_loss_mapping:
                         node_loss = self.mut_loss_mapping[node]
                     else:
                         node_loss = []
@@ -474,7 +474,7 @@ class ClonalTree:
                         product(self.mut_mapping[node], [1]),
                         product(node_loss, [0])
                     ):
-                        if child in self.mut_loss_mapping:
+                        if include_loss and child in self.mut_loss_mapping:
                             child_loss = self.mut_loss_mapping[child]
                         else:
                             child_loss = []
@@ -485,10 +485,10 @@ class ClonalTree:
                             pairs[(mut1, mut2)] += 1
         return pairs
 
-    def get_cluster_pairs(self) -> Counter:
+    def get_cluster_pairs(self, include_loss: bool=True) -> Counter:
         pairs = Counter()
         for node in self.tree.nodes:
-            if node in self.mut_loss_mapping:
+            if include_loss and node in self.mut_loss_mapping:
                 node_loss = self.mut_loss_mapping[node]
             else:
                 node_loss = []
@@ -515,14 +515,14 @@ class ClonalTree:
                 return False
         return True
 
-    def get_incomparable_pairs(self) -> Counter:
+    def get_incomparable_pairs(self, include_loss: bool=True) -> Counter:
         pairs = Counter()
         for u, v in combinations(self.tree.nodes, 2):
-            if u in self.mut_loss_mapping:
+            if include_loss and u in self.mut_loss_mapping:
                 u_loss = self.mut_loss_mapping[u]
             else:
                 u_loss = []
-            if v in self.mut_loss_mapping:
+            if include_loss and v in self.mut_loss_mapping:
                 v_loss = self.mut_loss_mapping[v]
             else:
                 v_loss = []

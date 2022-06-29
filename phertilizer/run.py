@@ -3,6 +3,9 @@
 import argparse
 import sys
 import pandas as pd
+
+# from phertilizer import Phertilizer
+# from utils import pickle_save
 from phertilizer.phertilizer import Phertilizer
 from phertilizer.utils import pickle_save
 
@@ -43,7 +46,11 @@ def main(args):
     ph = Phertilizer(variant_data,
                      bin_count_data,
                      bin_count_normal,
-                     snv_bin_mapping
+                     snv_bin_mapping,
+                     alpha =args.alpha,
+                     max_copies = args.copies,
+                    neutral_mean = args.neutral_mean,
+                    neutral_eps = args.neutral_eps
                      )
 
     if args.min_frac is not None:
@@ -161,6 +168,8 @@ def get_options():
     parser.add_argument("--mut_lookup",
                         help="output file that maps internal mutation index to the input mutation label")
     args = parser.parse_args(None if sys.argv[1:] else ['-h'])
+
+  
 
     return(args)
 

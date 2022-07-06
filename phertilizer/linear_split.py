@@ -43,7 +43,7 @@ class Linear_split():
         number restarts for each tree operations 
     radius : float
         the quantile of the RDR distance matrix for which similarity of RDR values 
-        should be consered (default: 0.5 [median])
+        should be considered (default: 0.5 [median])
     npass : int
         the number of heuristics that a cell clustering must pass in order for a tree 
         operation to be performed on a leaf node (default: 1)

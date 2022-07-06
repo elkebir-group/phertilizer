@@ -789,3 +789,36 @@ class IdentityTree(ClonalTree):
     def get_seeds(self, lamb, tau, ancestral_muts=None):
         return []
 
+class LossTree(ClonalTree):
+    
+    def __init__(self, cellsA, cellsB, ma_plus, ma_minus, mutsB, eA=None, eB=None, key=None):
+        t = nx.DiGraph()
+        t.add_node(0, ncells=len(cellsA))
+        t.add_node(1, ncells=len(cellsB))
+        t.add_edge(0, 1)
+        cm, mm, ml, em = {}, {}, {}, {}
+        cm[0] = {0: cellsA}
+        cm[1] = {0: cellsB}
+
+        mm[0] = np.array(shape=0, dtype=int)
+        mm[1] = mutsB
+
+        ml[0] = ma_minus
+        if eA is not None:
+            em[0] = eA
+        if eB is not None:
+            em[1] = eB
+        super().__init__(t, cm, mm, ml, em)
+
+    def is_valid(self, lamb, tau):
+        return True
+    def get_seeds(self, lamb, tau, ancestral_muts):
+        seed_list = []
+
+        cellsB = self.get_tip_cells(1)
+        mutsB = self.get_tip_muts(1)
+        if len(cellsB) > lamb and len(mutsB) > tau:
+            anc_muts = np.sort(np.union1d(ancestral_muts, self.mut_mapping[0]))
+            seed_list.append(Seed(cellsB, mutsB, anc_muts))
+
+        return seed_list

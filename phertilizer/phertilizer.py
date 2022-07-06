@@ -18,6 +18,7 @@ import numba
 from cna_events import CNA_HMM
 import branching_split as bs
 import linear_split as ls
+import loss_split as loss
 from seed import Seed
 from data import Data
 from params import Params
@@ -384,7 +385,8 @@ class Phertilizer:
                     starts =3,
                     seed=1026, 
                     radius=0.5, 
-                    npass=1):
+                    npass=1,
+                    bayesfactor=0.5):
         '''Recursively enumerates all clonal trees on the given input data and
         identifies the clonal tree with maximum likelihood 
 
@@ -455,7 +457,8 @@ class Phertilizer:
                             spectral_gap, 
                             jump_percentage, 
                             radius, 
-                            npass)
+                            npass,
+                            bayesfactor)
    
 
         seed_list = deque()
@@ -517,7 +520,7 @@ class Phertilizer:
             self.mapping_list[key] = []
 
                    
-            sprout_list = [  self.sprout_linear, self.sprout_branching]
+            sprout_list = [  self.sprout_linear, self.sprout_branching, self.sprout_loss]
 
             for sprout in sprout_list:
 
@@ -683,6 +686,34 @@ class Phertilizer:
 
 
         return best_tree
+    
+
+    def sprout_loss(self, seed):
+        '''Performs a linear operation on a given seed
+
+        Parameters
+        ----------
+        seed : Seed
+            a leaf node for which the operation should be performed
+           
+        Returns
+        -------
+        best_tree
+            a LossTree with the highest likelihood or None is no valid LossTree is found
+        '''
+        print("\nSprouting a loss tree...")    
+        loss_split =loss.Loss_split(     self.data,
+                                        self.cna_genotype_mode,
+                                        seed,
+                                        self.rng,  
+                                        self.params,
+                                    )
+        
+        best_tree = loss_split.sprout()
+
+
+        return best_tree
+
        
 
     def sprout_identity(self, seed):

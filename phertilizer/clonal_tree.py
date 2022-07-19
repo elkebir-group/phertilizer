@@ -296,8 +296,9 @@ class ClonalTree:
 
         self.relabel()
 
-    def snv_genotypes(self):
-        m = len(self.get_all_muts())
+    def snv_genotypes(self, m=None):
+        if m is None:
+            m = len(self.get_all_muts())
         y_dict = {}
         for node in self.mut_mapping:
             y = np.zeros(m, dtype=int)
@@ -423,9 +424,12 @@ class ClonalTree:
         muts = np.sort(muts)
         return muts
 
-    def get_mut_clusters(self):
-        n_mut = len(self.get_all_muts())
-        clusters = np.zeros(n_mut, dtype=int)
+    def get_mut_clusters(self, n_mut=None):
+        if n_mut is None:
+            n_mut = len(self.get_all_muts())
+            clusters = np.zeros(n_mut, dtype=int)
+        else:
+            clusters  = np.full(shape=n_mut, fill_value=-1)
         for cluster, muts in self.mut_mapping.items():
             if len(muts) > 0:
                 clusters[muts] = cluster
@@ -800,7 +804,7 @@ class LossTree(ClonalTree):
         cm[0] = {0: cellsA}
         cm[1] = {0: cellsB}
 
-        mm[0] = np.array(shape=0, dtype=int)
+        mm[0] = np.empty(shape=0, dtype=int)
         mm[1] = mutsB
 
         ml[0] = ma_minus
@@ -812,13 +816,14 @@ class LossTree(ClonalTree):
 
     def is_valid(self, lamb, tau):
         return True
+        
     def get_seeds(self, lamb, tau, ancestral_muts):
         seed_list = []
 
         cellsB = self.get_tip_cells(1)
         mutsB = self.get_tip_muts(1)
         if len(cellsB) > lamb and len(mutsB) > tau:
-            anc_muts = np.sort(np.union1d(ancestral_muts, self.mut_mapping[0]))
+            anc_muts = np.sort(np.setdiff1d(ancestral_muts, self.mut_loss_mapping[0]))
             seed_list.append(Seed(cellsB, mutsB, anc_muts))
 
         return seed_list

@@ -226,7 +226,8 @@ class Phertilizer:
                       alpha = 0.001,
                       max_copies = 5,
                       neutral_mean = 1.0,
-                      neutral_eps = 0.05
+                      neutral_eps = 0.05,
+                      dollo = True
                       ):
    
 
@@ -238,6 +239,8 @@ class Phertilizer:
         self.explored_seeds = None
 
         self.min_loss =0
+
+        self.dollo = dollo
 
         #wrangle input data into the correct format
         variant_count_data['chr_mutation'] = variant_count_data['chr'].astype('str') + "_" + \
@@ -269,6 +272,7 @@ class Phertilizer:
             snv_bin_mapping['mutation'] = mut_series.loc[snv_bin_mapping['chr_mutation']].values     
             snv_bin_mapping = snv_bin_mapping.set_index("mutation").sort_index()
             snv_bin_mapping = snv_bin_mapping['bin']
+     
 
             bin_count_data['cell_index'] = cell_series[bin_count_data['cell']].values
             bin_count_data.sort_values(by=['cell_index'])
@@ -386,7 +390,7 @@ class Phertilizer:
                     seed=1026, 
                     radius=0.5, 
                     npass=1,
-                    bayesfactor=0.5):
+                    loss_read_threshold=8):
         '''Recursively enumerates all clonal trees on the given input data and
         identifies the clonal tree with maximum likelihood 
 
@@ -458,7 +462,7 @@ class Phertilizer:
                             jump_percentage, 
                             radius, 
                             npass,
-                            bayesfactor)
+                            loss_read_threshold)
    
 
         seed_list = deque()
@@ -519,9 +523,11 @@ class Phertilizer:
         
             self.mapping_list[key] = []
 
-                   
-            sprout_list = [  self.sprout_linear, self.sprout_branching, self.sprout_loss]
+            if self.dollo:
+                sprout_list = [  self.sprout_linear, self.sprout_branching, self.sprout_loss]
 
+            else:
+                 sprout_list = [  self.sprout_linear, self.sprout_branching]
             for sprout in sprout_list:
 
                 print("Sprouting seed:")

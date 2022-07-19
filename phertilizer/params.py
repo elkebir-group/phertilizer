@@ -11,7 +11,9 @@ class Params:
     jump_percentage : float = 0.075
     radius : float = 0.5
     npass : int = 1
-    bayes_factor : float = 0.5
+    loss_read_threshold : int = 5
+    loss_num_neighbors : int = 5
+
     def __post_init__(self):
         if self.radius > 1:
             self.radius = 1

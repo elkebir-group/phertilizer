@@ -4,9 +4,9 @@ import numpy as np
 import pandas as pd
 import logging
 from scipy.spatial.distance import pdist, squareform
+from sklearn.neighbors import LocalOutlierFactor
 
-from clonal_tree import IdentityTree, LinearTree, LossTree
-from clonal_tree_list import ClonalTreeList
+from clonal_tree import  LossTree
 from utils import normalizedMinCut, check_stats, snv_kernel_width, cnv_kernel_width, impute_mut_features
 
 
@@ -131,15 +131,13 @@ class Loss_split():
         self.starts = params.starts
 
        # stopping parameters
-        self.lamb = params.lamb
-        self.tau = params.tau
-        self.spectral_gap = params.spectral_gap
-        self.jump_percentage = params.jump_percentage
-        self.bayes_factor_threshold = params.bayes_factor
+
+        self.loss_read_threshold = params.loss_read_threshold
+        self.loss_num_neighbors = params.loss_num_neighbors
 
         # self.copy_distance_matrix = data.copy_distance
 
-        # self.cnn_hmm = data.cna_hmm
+        self.cnn_hmm = data.cna_hmm
 
     def random_init_array(self, array, p):
         ''' uniformly at random splits a given array into two parts (A,B)
@@ -233,7 +231,8 @@ class Loss_split():
         :return: numpy arrays contain the mutation ids in mutsA and mutsB
         """
       
-    
+   
+
         like0_array =self.like0[np.ix_(self.cells, self.mutsA)].sum(axis=0)
         like1_array =self.like1[np.ix_(self.cells, self.mutsA)].sum(axis=0)
 
@@ -246,11 +245,116 @@ class Loss_split():
         
         ma_plus= np.setdiff1d(self.mutsA, ma_minus)
         logging.info(f"Ma plus: {len(ma_plus)} Ma minus: {len(ma_minus)}")
-
-
-    
         return ma_plus, ma_minus
-  
+
+
+    def filter_muts(self):
+        subset_matrix = self.total[np.ix_(self.cells, self.mutsA)]
+        obs_cells_by_mut =np.count_nonzero(subset_matrix, axis=0)
+        filtered_ancestral_muts =self.mutsA[obs_cells_by_mut < self.loss_read_threshold]
+        return filtered_ancestral_muts
+
+        
+
+    def local_outlier_detection(self, ma_minus):
+        #prep X
+        ma_minus_bin_mapping = self.snv_bin_mapping.loc[ma_minus]
+        print(ma_minus_bin_mapping)
+            
+        X = ma_minus_bin_mapping.to_numpy().reshape(-1,1)
+
+        clf = LocalOutlierFactor(n_neighbors=self.loss_num_neighbors)
+        pred_outliers = clf.fit_predict(X)
+        print(pred_outliers)
+        filtered_ma_minus =ma_minus[pred_outliers !=-1]
+        return filtered_ma_minus
+        #add a threshold for the minimum number of reads in order to consider a mutation being lost
+        #add a decision threshold for the likelihood 
+        #density based outlier detection 
+        
+
+
+        return ma_plus, ma_minus
+    @staticmethod
+    def swap( old_array, new_array, val):
+        old_array = old_array[old_array != val]
+        new_array = np.append(new_array, val)
+        return old_array, new_array
+    
+    def post_process(self, ma_plus, ma_minus,cellsA, cellsB):
+        unexplored_muts = np.concatenate([ma_plus, ma_minus]).tolist()
+        unexplored_cells = np.concatenate([cellsA, cellsB]).tolist()
+        state = {}
+        state_likes = {}
+        index =0
+        while len(unexplored_cells) > 0 and len(unexplored_muts) > 0:
+            delta = np.NINF    
+            curr_likelihood = self.compute_likelihood(cellsA, cellsB, ma_plus, ma_minus)
+        
+            for m in ma_plus:
+                if m in unexplored_muts:
+                    ma_plus_temp, ma_minus_temp = self.swap(ma_plus, ma_minus, m)
+                    new_like = self.compute_likelihood(cellsA, cellsB, ma_plus_temp, ma_minus_temp)
+                    cand_delta = new_like -curr_likelihood
+                    if cand_delta > delta:
+                        curr_cA, curr_cB, curr_ma_plus, curr_ma_minus = cellsA, cellsB, ma_plus_temp, ma_minus_temp 
+                        delta = cand_delta
+                        best_val, best_type, best_like = m, "mut", new_like
+
+            for m in ma_minus:
+                if m in unexplored_muts:
+                    ma_minus_temp, ma_plus_temp = self.swap(ma_minus, ma_plus, m)
+                    new_like = self.compute_likelihood(cellsA, cellsB, ma_plus_temp, ma_minus_temp)
+                    cand_delta = new_like -curr_likelihood
+                    if cand_delta > delta:
+                        curr_cA, curr_cB, curr_ma_plus, curr_ma_minus = cellsA, cellsB, ma_plus_temp, ma_minus_temp 
+                        delta = cand_delta
+                        best_val, best_type, best_like = m, "mut", new_like
+            for c in cellsA:
+                if m in unexplored_cells:
+                    cA_temp, cB_temp = self.swap(cellsA, cellsB, c)
+                    new_like = self.compute_likelihood(cA_temp, cB_temp, ma_plus, ma_minus)
+                    cand_delta = new_like -curr_likelihood
+                    if cand_delta > delta:
+                        curr_cA, curr_cB, curr_ma_plus, curr_ma_minus = cellsA, cellsB, ma_plus_temp, ma_minus_temp 
+                        delta = cand_delta
+                        best_val, best_type, best_like = c, "cell", new_like
+            for c in cellsB:
+                if m in unexplored_cells:
+                    cB_temp, cA_temp = self.swap(cellsB, cellsA, c)
+                    new_like = self.compute_likelihood(cB_temp, cA_temp, ma_plus, ma_minus)
+                    cand_delta = new_like -curr_likelihood
+                    if cand_delta > delta:
+                        curr_cA, curr_cB, curr_ma_plus, curr_ma_minus = cellsA, cellsB, ma_plus_temp, ma_minus_temp 
+                        delta = cand_delta
+                        best_val, best_type, best_like = c, "cell", new_like
+                      
+            if best_type =="cell":
+                unexplored_cells.remove(best_val)
+            else:
+                unexplored_muts.remove(best_val)
+            state[index] = {'cA': curr_cA, 'cB': curr_cB, 'ma_plus': curr_ma_plus, 'ma_minus': curr_ma_minus}
+            state_likes[index] = best_like
+            index += 1
+        best_like = np.NINF
+        for key, val in state_likes.items():
+            if val > best_like:
+                best_like, best_index = val, key
+        
+        return state[best_index], best_like
+
+
+
+                    
+
+               
+            
+
+
+
+
+
+            
 
     def assign_cna_events(self, cellsA, cellsB):
         '''    use the precomputed hmm to compute the most likely CNA genotypes for the 
@@ -332,30 +436,39 @@ class Loss_split():
         if len(self.mutsA) ==0:
             return None
         
-        # self.snv_bin_mapping = self.snv_bin_mapping.filter(items=self.mutsA)
+        self.snv_bin_mapping = self.snv_bin_mapping.filter(items=self.mutsA)
 
-        best_like = np.NINF
+        filtered_muts =self.filter_muts()
+    
+        self.mutsA = np.setdiff1d(self.mutsA, filtered_muts)
+        # best_like = np.NINF
         #find model1
 
         cellsA, cellsB = self.cell_assignment()
 
 
         ma_plus, ma_minus = self.mut_assignment()
+        if len(ma_minus) > 30:
+            ma_minus = self.local_outlier_detection(ma_minus)
 
-        if len(ma_minus) ==0:
+
+        # if len(ma_minus) ==0:
+        #     return None
+
+        # likelihood = self.compute_likelihood(cellsA, cellsB, ma_plus, ma_minus)
+        # best_state, best_like = self.post_process(ma_plus, ma_minus, cellsA, cellsB)
+        # identity_like =  self.like1[np.ix_(self.cells, np.union1d(self.mutsA, self.mutsB))].sum()
+        # print(f"best_like: {best_like}, previous likelihood: {likelihood}, delta: {best_like -likelihood}")
+        # bayes_factor = likelihood/identity_like
+        # ma_plus, ma_minus =  best_state['ma_plus'], best_state['ma_minus']
+        # cellsA, cellsB =  best_state['cA'], best_state['cB']
+        if len(ma_minus) < 30:
             return None
+        eA, eB = self.assign_cna_events(cellsA, cellsB)
+        lt =LossTree(cellsA, cellsB, ma_plus, ma_minus, self.mutsB, eA, eB)
+        
+        return lt
 
-        likelihood = self.compute_likelihood(cellsA, cellsB, ma_plus, ma_minus)
-        identity_like =  self.like1[np.ix_(self.cells, np.union1d(self.mutsA, self.mutsB))].sum()
-
-        bayes_factor = likelihood/identity_like
-
-        if bayes_factor >= self.bayes_factor_threshold:
-            eA, eB = self.assign_cna_events(cellsA, cellsB)
-            lt =LossTree(cellsA, cellsB, ma_plus, ma_minus, self.mutsB, eA, eB)
-            return lt
-        else:
-            return None
 
 
 

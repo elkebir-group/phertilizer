@@ -69,7 +69,11 @@ def main(args):
         starts=args.starts,
         seed=args.seed,
         radius=args.radius,
-        npass=args.npass)
+        npass=args.npass,
+        loss_read_threshold = args.dollo_read_thresh,
+        loss_num_neighbors = args.loss_num_neighbors,
+        min_loss_snvs = args.min_loss_snvs
+        )
 
     cell_lookup, mut_lookup = ph.get_id_mappings()
     print("\nPhertilizer Tree....")
@@ -170,6 +174,12 @@ def get_options():
                         help="output file that maps internal mutation index to the input mutation label")
     parser.add_argument("--dollo", action="store_true", 
                         help="run phertilizer in Dollo mode, otherwise it runs in infinite sites mode")
+    parser.add_argument("--dollo_read_thresh", type=int, default=5,
+                        help="min number of cells with an SNV read in order for it to be a candidate for loss")
+    parser.add_argument("--loss_num_neighbors", type=int, default=5,
+                        help="k number of neighbors to consider for outlier detection for a lost SNV")
+    parser.add_argument("--min_loss_snvs", type=int, default=30,
+                        help="the minimum number of SNVs undergoing loss for a valid loss operation")
 
     args = parser.parse_args(None if sys.argv[1:] else ['-h'])
 

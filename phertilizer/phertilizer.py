@@ -390,7 +390,10 @@ class Phertilizer:
                     seed=1026, 
                     radius=0.5, 
                     npass=1,
-                    loss_read_threshold=8):
+                    loss_read_threshold=5,
+                    loss_num_neighbors=5,
+                    min_loss_snvs = 30
+                    ):
         '''Recursively enumerates all clonal trees on the given input data and
         identifies the clonal tree with maximum likelihood 
 
@@ -462,7 +465,9 @@ class Phertilizer:
                             jump_percentage, 
                             radius, 
                             npass,
-                            loss_read_threshold)
+                            loss_read_threshold,
+                            loss_num_neighbors,
+                            min_loss_snvs)
    
 
         seed_list = deque()

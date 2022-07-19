@@ -134,6 +134,7 @@ class Loss_split():
 
         self.loss_read_threshold = params.loss_read_threshold
         self.loss_num_neighbors = params.loss_num_neighbors
+        self.min_loss_snvs = params.min_loss_snvs
 
         # self.copy_distance_matrix = data.copy_distance
 
@@ -448,7 +449,7 @@ class Loss_split():
 
 
         ma_plus, ma_minus = self.mut_assignment()
-        if len(ma_minus) > 30:
+        if len(ma_minus) > self.min_loss_snvs:
             ma_minus = self.local_outlier_detection(ma_minus)
 
 
@@ -462,7 +463,7 @@ class Loss_split():
         # bayes_factor = likelihood/identity_like
         # ma_plus, ma_minus =  best_state['ma_plus'], best_state['ma_minus']
         # cellsA, cellsB =  best_state['cA'], best_state['cB']
-        if len(ma_minus) < 30:
+        if len(ma_minus) < self.min_loss_snvs:
             return None
         eA, eB = self.assign_cna_events(cellsA, cellsB)
         lt =LossTree(cellsA, cellsB, ma_plus, ma_minus, self.mutsB, eA, eB)
@@ -479,63 +480,63 @@ class Loss_split():
         # events = CNA_Events(self.cells,self.bins, self.rdr,chrom_bin_mapping=self.chrom_bin_mapping).run()
       
            
-        if not include_cna:
-            ma_plus, ma_minus = self.mut_assignment()
-        else:
-            events = self.cna_hmm.run(self.cells)
-            ma_plus, ma_minus = self.mut_assignment_with_cna(events)
+        # if not include_cna:
+        #     ma_plus, ma_minus = self.mut_assignment()
+        # else:
+        #     events = self.cna_hmm.run(self.cells)
+        #     ma_plus, ma_minus = self.mut_assignment_with_cna(events)
 
-        if len(ma_minus) <= self.min_snvs:
-            return None
+        # if len(ma_minus) <= self.min_snvs:
+        #     return None
 
-        if not include_cna:
-            cellsA, cellsB = self.cell_assignment()
+        # if not include_cna:
+        #     cellsA, cellsB = self.cell_assignment()
        
-        else:
-           cellsA, cellsB = self.cell_assignment_with_cna(events)
+        # else:
+        #    cellsA, cellsB = self.cell_assignment_with_cna(events)
         
-        # ma_plus, ma_minus,   = self.check_genomic_locations(ma_minus)
+        # # ma_plus, ma_minus,   = self.check_genomic_locations(ma_minus)
         
 
-        if self.debug:
-            pd.Series(ma_minus).to_csv("test/ma_minus.csv", index=False)
-        #check to to see if just a loss node should be placed
+        # if self.debug:
+        #     pd.Series(ma_minus).to_csv("test/ma_minus.csv", index=False)
+        # #check to to see if just a loss node should be placed
     
 
-        logging.info(f"CellsA: {len(cellsA)} Cells B: {len(cellsB)}")
-        # like, _ = self.compute_likelihood(cellsA, cellsB, ma_plus, ma_minus)
-        #check one
-        # pval = self.permutation_test(cellsA, cellsB, ma_plus, ma_minus, like)
+        # logging.info(f"CellsA: {len(cellsA)} Cells B: {len(cellsB)}")
+        # # like, _ = self.compute_likelihood(cellsA, cellsB, ma_plus, ma_minus)
+        # #check one
+        # # pval = self.permutation_test(cellsA, cellsB, ma_plus, ma_minus, like)
 
        
        
           
-        eB = self.cna_hmm.run(cellsB)
+        # eB = self.cna_hmm.run(cellsB)
 
-        if len(cellsA) > 0:
-            eA = self.cna_hmm.run(cellsA)
-        else:
-            eA = None
+        # if len(cellsA) > 0:
+        #     eA = self.cna_hmm.run(cellsA)
+        # else:
+        #     eA = None
 
    
-        loss_tree = LossTree(cellsA, cellsB, ma_minus, self.mutsB, eA, eB)
+        # loss_tree = LossTree(cellsA, cellsB, ma_minus, self.mutsB, eA, eB)
 
 
 
        
-        return loss_tree
+        # return loss_tree
 
 
 
-        # self.cand_splits = ClonalTreeList()
+        # # self.cand_splits = ClonalTreeList()
 
-        # self.run(self.cells, self.muts, p=0.5)
+        # # self.run(self.cells, self.muts, p=0.5)
 
-        # if self.cand_splits.size() == 0:
-        #     return None
+        # # if self.cand_splits.size() == 0:
+        # #     return None
 
-        # best_tree_index = np.argmax(np.array(self.norm_like_list))
+        # # best_tree_index = np.argmax(np.array(self.norm_like_list))
 
-        # best_tree_like = self.cand_splits.index_tree(best_tree_index)
+        # # best_tree_like = self.cand_splits.index_tree(best_tree_index)
 
-        # return best_tree_like
+        # # return best_tree_like

@@ -13,6 +13,7 @@ class Params:
     npass : int = 1
     loss_read_threshold : int = 5
     loss_num_neighbors : int = 5
+    min_loss_snvs : int = 30
 
     def __post_init__(self):
         if self.radius > 1:

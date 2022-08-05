@@ -94,7 +94,7 @@ def main(args):
         pickle_save(grow_tree, args.tree_pickle)
 
     cell_lookup, mut_lookup = ph.get_id_mappings()
-    pcell, pmut, _, event_df = grow_tree.generate_results(
+    pcell, pmut, pmut_loss, event_df = grow_tree.generate_results(
         cell_lookup, mut_lookup)
 
     if args.cell_lookup is not None:
@@ -106,6 +106,9 @@ def main(args):
         mut_lookup = mut_lookup.rename("mut_label")
         mut_lookup.index.name = "mut_id"
         mut_lookup.to_csv(args.mut_lookup)
+    
+    if args.pred_mut_loss is not None:
+            pmut_loss.to_csv(args.pred_mut_loss, index=False)
 
     if args.pred_cell is not None:
         pcell.to_csv(args.pred_cell, index=False)
@@ -160,6 +163,8 @@ def get_options():
                         help="output file cell clusters")
     parser.add_argument("-e", "--pred_event",
                         help="output file cna genotypes")
+    parser.add_argument("-l", "--pred_mut_loss",
+                        help="output file of lost mutations")
     parser.add_argument("--tree",
                         help="output file for png (dot) of Phertilizer tree")
     parser.add_argument("--tree_pickle",
@@ -183,31 +188,31 @@ def get_options():
 
     args = parser.parse_args(None if sys.argv[1:] else ['-h'])
 
-    # inpath = "/scratch/data/leah/phertilizer/simulations/phertilizer/phert_input/s14_n1500_m5000_c5_p0.01_cna1_l2_loh2_dcl2_dsnv2_dcnv2"
-    # outpath = "/scratch/data/leah/phertilizer/simulations/phertilizer/tst_snv"
-    # args = parser.parse_args([ 
-    #     "-f", f"{inpath}/dataframe_mod.tsv",
-    #     "--bin_count_data", f"{inpath}/reads_per_bin_relabeled.csv",
-    #     "--bin_count_normal", "/scratch/data/leah/phertilizer/simulations/normal_samples/normal_cells_p0.01.tsv",
-    #     "--snv_bin_mapping",f"{inpath}/snv_bin_reformatted.csv",
-    #     "--min_frac", "0.1",
-    #     "-d", "14",
-    #     "-c", "5",
-    #     "-j", "10",
-    #     "-s", "3",
-    #     "-a", "0.001",
-    #     "--neutral_mean", "1.0",
-    #     "--neutral_eps", "0.15",
-    #     "-m", f"{outpath}/pred_mut.csv",
-    #     "-n", f"{outpath}/pred_cell.csv",
-    #     "-e", f"{outpath}/pred_event.csv",
-    #     "--tree", f"{outpath}/best_tree.png",
-    #     "--tree_path", f"{outpath}",
-    #     "--tree_pickle", f"{outpath}/best_tree.pickle",
-    #     "--tree_list", f"{outpath}/tree_list.pickle",
-    #     "--dollo"
+    inpath = "/scratch/data/leah/phertilizer/simulations/phertilizer/phert_input/s14_n2500_m2500_c5_p0.01_cna1_l2_loh2_dcl2_dsnv2_dcnv2"
+    outpath = "/scratch/data/leah/phertilizer/simulations/phertilizer/tst_snv"
+    args = parser.parse_args([ 
+        "-f", f"{inpath}/dataframe_mod.tsv",
+        "--bin_count_data", f"{inpath}/reads_per_bin_relabeled.csv",
+        "--bin_count_normal", "/scratch/data/leah/phertilizer/simulations/normal_samples/normal_cells_p0.01.tsv",
+        "--snv_bin_mapping",f"{inpath}/snv_bin_reformatted.csv",
+        "--min_frac", "0.1",
+        "-d", "14",
+        "-c", "5",
+        "-j", "10",
+        "-s", "3",
+        "-a", "0.001",
+        "--neutral_mean", "1.0",
+        "--neutral_eps", "0.15",
+        "-m", f"{outpath}/pred_mut.csv",
+        "-n", f"{outpath}/pred_cell.csv",
+        "-e", f"{outpath}/pred_event.csv",
+        "--tree", f"{outpath}/best_tree.png",
+        "--tree_path", f"{outpath}",
+        "--tree_pickle", f"{outpath}/best_tree.pickle",
+        "--tree_list", f"{outpath}/tree_list.pickle",
+        "--dollo"
 
-    # ])
+    ])
 
     return(args)
 

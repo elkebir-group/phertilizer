@@ -318,4 +318,56 @@ def find_largest_component(adj, labels):
 
     return nodes_in_comp
 
+def is_valid_state(state,n):
+    if np.array(state).sum() !=n:
+        return False
+    if len(state) != (n+1):
+        return False 
+    if state[-1] != 0:
+        return False
+    state = state[:-1]
+    i = 0
+    j = 0    
+    for k in state:
+        i += k
+        j += 1
+        if j > i:
+            return False
+    else:
+        return True
+
+
+
+
+
+# Get list of potential next steps
+def get_candidates(state,n):
+    if len(state) < n+1:
+        return [0,1,2]
+    else:
+        return []
+
+# Recursively, perform a depth-first search to find valid solutions
+def search(state, solutions,n):
+    # Check is the state is valid
+    if is_valid_state(state,n):
+        # Add a copy of the valid state to list of solutions
+        solutions.append(state.copy())
+        # print(f"Valid State Found: {state}")
+        # return # uncomment if you only need to find one valid solution
+    # Iterate through the candidates that can be used
+    # to construct the next state
+    for candidate in get_candidates(state,n):
+        # Add candidate to the current state
+        state.append(candidate)
+        # Call search function with updated state
+        search(state, solutions,n)
+        # Remove the current candidate from the current state
+        state.pop()
+
+def solve():
+    solutions = []
+    state = []
+    search(state, solutions,n=14)
+    return solutions
 

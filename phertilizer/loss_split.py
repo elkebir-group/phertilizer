@@ -433,7 +433,8 @@ class Loss_split():
             a LinearTree with maximum normalized likelihood among all restarts
       
         """
-
+        self.cells = self.cells.astype(int)
+        self.mutsA = self.mutsA.astype(int)
         if len(self.mutsA) ==0:
             return None
         

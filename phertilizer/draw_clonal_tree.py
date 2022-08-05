@@ -97,7 +97,10 @@ class DrawClonalTree:
                         self.labels[n] += f"\n{key}: {self.node_likelihood[n][key]}"
                 self.labels[n] += "\nCells:" + str(self.cell_count[n])
                 # SNV
-                if self.mut_count[n] > 0:
+                if self.mut_count[n] > 0 and self.mut_loss_count[n] > 0:
+                    self.labels[n] += "\nSNVs: +" + str(self.mut_count[n])
+                    self.labels[n] += "\nSNVs: -" + str(self.mut_loss_count[n])
+                elif self.mut_count[n] > 0:
                     self.labels[n] += "\nSNVs: +" + str(self.mut_count[n])
                 elif self.mut_loss_count[n] > 0:
                     self.labels[n] += "\nSNVs: -" + str(self.mut_loss_count[n])

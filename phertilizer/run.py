@@ -188,31 +188,31 @@ def get_options():
 
     args = parser.parse_args(None if sys.argv[1:] else ['-h'])
 
-    inpath = "/scratch/data/leah/phertilizer/simulations/phertilizer/phert_input/s14_n2500_m2500_c5_p0.01_cna1_l2_loh2_dcl2_dsnv2_dcnv2"
-    outpath = "/scratch/data/leah/phertilizer/simulations/phertilizer/tst_snv"
-    args = parser.parse_args([ 
-        "-f", f"{inpath}/dataframe_mod.tsv",
-        "--bin_count_data", f"{inpath}/reads_per_bin_relabeled.csv",
-        "--bin_count_normal", "/scratch/data/leah/phertilizer/simulations/normal_samples/normal_cells_p0.01.tsv",
-        "--snv_bin_mapping",f"{inpath}/snv_bin_reformatted.csv",
-        "--min_frac", "0.1",
-        "-d", "14",
-        "-c", "5",
-        "-j", "10",
-        "-s", "3",
-        "-a", "0.001",
-        "--neutral_mean", "1.0",
-        "--neutral_eps", "0.15",
-        "-m", f"{outpath}/pred_mut.csv",
-        "-n", f"{outpath}/pred_cell.csv",
-        "-e", f"{outpath}/pred_event.csv",
-        "--tree", f"{outpath}/best_tree.png",
-        "--tree_path", f"{outpath}",
-        "--tree_pickle", f"{outpath}/best_tree.pickle",
-        "--tree_list", f"{outpath}/tree_list.pickle",
-        "--dollo"
+    # inpath = "/scratch/data/leah/phertilizer/simulations/phertilizer/phert_input/s14_n2500_m5000_c5_p0.01_cna1_l2_loh2_dcl2_dsnv2_dcnv2"
+    # outpath = "/scratch/data/leah/phertilizer/simulations/phertilizer/tst_snv"
+    # args = parser.parse_args([ 
+    #     "-f", f"{inpath}/dataframe_mod.tsv",
+    #     "--bin_count_data", f"{inpath}/reads_per_bin_relabeled.csv",
+    #     "--bin_count_normal", "/scratch/data/leah/phertilizer/simulations/normal_samples/normal_cells_p0.01.tsv",
+    #     "--snv_bin_mapping",f"{inpath}/snv_bin_reformatted.csv",
+    #     "--min_frac", "0.1",
+    #     "-d", "14",
+    #     "-c", "5",
+    #     "-j", "10",
+    #     "-s", "3",
+    #     "-a", "0.001",
+    #     "--neutral_mean", "1.0",
+    #     "--neutral_eps", "0.15",
+    #     "-m", f"{outpath}/pred_mut.csv",
+    #     "-n", f"{outpath}/pred_cell.csv",
+    #     "-e", f"{outpath}/pred_event.csv",
+    #     "--tree", f"{outpath}/best_tree.png",
+    #     "--tree_path", f"{outpath}",
+    #     "--tree_pickle", f"{outpath}/best_tree.pickle",
+    #     "--tree_list", f"{outpath}/tree_list.pickle",
+    #     "--dollo"
 
-    ])
+    # ])
 
     return(args)
 

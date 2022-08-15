@@ -4,6 +4,7 @@ import pandas as pd
 import networkx as nx
 from collections import Counter
 from itertools import product, chain, combinations
+from scipy.stats import multivariate_normal
 
 # from phertilizer.seed import Seed
 # from phertilizer.draw_clonal_tree import DrawClonalTree
@@ -364,6 +365,22 @@ class ClonalTree:
             cells, cna_genotype_series)
 
         return cell_like_series.sum(), cell_like_series
+    
+    def read_depth_likelihood_by_node(self,n, read_depth, cells=None):
+        if cells is None:
+            cells = self.get_tip_cells(n)
+        if len(cells) == 0:
+            return None, None
+        cluster_data = read_depth[cells,:]
+        bin_means = cluster_data.mean(axis=0)
+        bin_variance = np.diag(np.var(cluster_data, axis=0))
+        mv_normal = multivariate_normal(bin_means, bin_variance)
+        cell_likelihood =mv_normal.logpdf(cluster_data)
+        cell_like_series = pd.Series(cell_likelihood, index=cells)
+
+        return cell_likelihood.sum(), cell_like_series
+
+
 
     def cna_genotype(self, n,  nbins):
 
@@ -589,7 +606,9 @@ class ClonalTree:
             node_like_dict["bin"] = bin_node_likelihood
             node_like_dict['total'] += bin_node_likelihood
         else:
-            node_like_dict["bin"] =0
+            rd_node_likelihood, _ = self.read_depth_likelihood_by_node(node, data.read_depth)
+            node_like_dict["bin"] = rd_node_likelihood
+            node_like_dict['total'] += node_like_dict["bin"]
 
         return node_like_dict
 

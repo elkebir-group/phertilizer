@@ -12,9 +12,11 @@ class Data:
     total : np.array
     like0 : np.array
     like1_marg : np.array
+    read_depth : np.array
     like1_dict : dict = None
     copy_distance : np.array = None
     cna_hmm : CNA_HMM = None
     snv_bin_mapping : pd.Series = None
+  
 
 

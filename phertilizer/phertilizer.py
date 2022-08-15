@@ -353,6 +353,7 @@ class Phertilizer:
                         total,
                         like0,
                         like1_marg,
+                        bin_count_data,
                         like1_dict,
                         copy_distance,
                         cnn_hmm,

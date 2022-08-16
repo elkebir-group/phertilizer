@@ -5,7 +5,6 @@ import networkx as nx
 from collections import Counter
 from itertools import product, chain, combinations
 from scipy.stats import multivariate_normal
-
 # from phertilizer.seed import Seed
 # from phertilizer.draw_clonal_tree import DrawClonalTree
 # from phertilizer.utils import get_next_label, dict_to_series, pickle_save, generate_cell_dataframe, generate_mut_dataframe, dict_to_dataframe
@@ -297,8 +296,9 @@ class ClonalTree:
 
         self.relabel()
 
-    def snv_genotypes(self):
-        m = len(self.get_all_muts())
+    def snv_genotypes(self, m=None):
+        if m is None:
+            m = len(self.get_all_muts())
         y_dict = {}
         for node in self.mut_mapping:
             y = np.zeros(m, dtype=int)
@@ -365,7 +365,6 @@ class ClonalTree:
             cells, cna_genotype_series)
 
         return cell_like_series.sum(), cell_like_series
-    
     def read_depth_likelihood_by_node(self,n, read_depth, cells=None):
         if cells is None:
             cells = self.get_tip_cells(n)
@@ -379,9 +378,6 @@ class ClonalTree:
         cell_like_series = pd.Series(cell_likelihood, index=cells)
 
         return cell_likelihood.sum(), cell_like_series
-
-
-
     def cna_genotype(self, n,  nbins):
 
         genotype = np.full(shape=nbins, fill_value="neutral")
@@ -440,9 +436,12 @@ class ClonalTree:
         muts = np.sort(muts)
         return muts
 
-    def get_mut_clusters(self):
-        n_mut = len(self.get_all_muts())
-        clusters = np.zeros(n_mut, dtype=int)
+    def get_mut_clusters(self, n_mut=None):
+        if n_mut is None:
+            n_mut = len(self.get_all_muts())
+            clusters = np.zeros(n_mut, dtype=int)
+        else:
+            clusters  = np.full(shape=n_mut, fill_value=-1)
         for cluster, muts in self.mut_mapping.items():
             if len(muts) > 0:
                 clusters[muts] = cluster
@@ -606,6 +605,7 @@ class ClonalTree:
             node_like_dict["bin"] = bin_node_likelihood
             node_like_dict['total'] += bin_node_likelihood
         else:
+            node_like_dict["bin"] =0
             rd_node_likelihood, _ = self.read_depth_likelihood_by_node(node, data.read_depth)
             node_like_dict["bin"] = rd_node_likelihood
             node_like_dict['total'] += node_like_dict["bin"]

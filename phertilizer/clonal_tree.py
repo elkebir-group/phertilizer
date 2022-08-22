@@ -177,6 +177,8 @@ class ClonalTree:
         self.loglikelihood, self.variant_likelihood, self.bin_count_likelihood = None, None, None
         self.states = ["gain", "loss", "neutral"]
 
+        self.use_rd = True
+
     def __eq__(self, obj):
 
         is_isomorphic = nx.is_isomorphic(
@@ -373,7 +375,7 @@ class ClonalTree:
         cluster_data = read_depth[cells,:]
         bin_means = cluster_data.mean(axis=0)
         bin_variance = np.diag(np.var(cluster_data, axis=0))
-        mv_normal = multivariate_normal(bin_means, bin_variance)
+        mv_normal = multivariate_normal(bin_means, bin_variance,allow_singular=True)
         cell_likelihood =mv_normal.logpdf(cluster_data)
         cell_like_series = pd.Series(cell_likelihood, index=cells)
 
@@ -606,8 +608,9 @@ class ClonalTree:
             node_like_dict['total'] += bin_node_likelihood
         else:
             node_like_dict["bin"] =0
-            rd_node_likelihood, _ = self.read_depth_likelihood_by_node(node, data.read_depth)
-            node_like_dict["bin"] = rd_node_likelihood
+            if self.use_rd:
+                rd_node_likelihood, _ = self.read_depth_likelihood_by_node(node, data.read_depth)
+                node_like_dict["bin"] = rd_node_likelihood
             node_like_dict['total'] += node_like_dict["bin"]
 
         return node_like_dict

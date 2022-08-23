@@ -85,6 +85,10 @@ def main(args):
         else:
             grow_tree.tree_png(args.tree)
 
+    if args.likelihood is not None:
+        with open(args.likelihood,'w+') as f:
+            f.write(loglikelihood)
+            
     if args.tree_pickle is not None:
         pickle_save(grow_tree, args.tree_pickle)
 
@@ -113,6 +117,8 @@ def main(args):
 
     if args.tree_path is not None:
         pre_process_list.save_the_trees(args.tree_path)
+
+    
 
     print("Thanks for planting a tree! See you later, friend.")
 
@@ -167,6 +173,8 @@ def get_options():
                         help="output file that maps internal cell index to the input cell label")
     parser.add_argument("--mut_lookup",
                         help="output file that maps internal mutation index to the input mutation label")
+    parser.add_argument("--likelihood",
+                        help="output file where the likelihood of the best tree should be written")
     # args = parser.parse_args(None if sys.argv[1:] else ['-h'])
 
 #     inpath = "/scratch/data/leah/phertilizer/simulations/phertilizer/phert_input/s13_n1500_m2500_c7_p0.01_cna1_l0_loh0_dcl2_dsnv2_dcnv2"
@@ -195,6 +203,50 @@ def get_options():
 
 # ])
   
+    inpath = "/scratch/data/leah/phertilizer/ACT/preprocess/TN2"
+    outpath = "/scratch/data/leah/phertilizer/ACT/phertilizer/grid_search_thresh0.05/TN2/s4_starts5_iterations10_lamb100_tau500_r0.9"
+    args = parser.parse_args([ 
+        "-f", f"{inpath}/variant_data_t0.05.tsv",
+        "--bin_count_data", f"{inpath}/binned_read_counts_t0.05.tsv",
+        # "--bin_count_normal", "/scratch/data/leah/phertilizer/simulations/normal_samples/normal_cells_p0.01.tsv",
+        # "--snv_bin_mapping",f"{inpath}/snv_bin_reformatted.csv",
+        "--min_cells", "100",
+        "--min_snvs", "500",
+        "-d", "4",
+        "-c", "5",
+        "-j", "10",
+        "-s", "5",
+        "-a", "0.001",
+        "--radius", "0.9",
+        "-m", f"{outpath}/pred_mut.csv",
+        "-n", f"{outpath}/pred_cell.csv",
+        "--tree", f"{outpath}/best_tree.png",
+        "--tree_path", f"{outpath}",
+        "--tree_pickle", f"{outpath}/best_tree.pickle",
+        "--tree_list", f"{outpath}/tree_list.pickle",
+        "--likelihood", f"{outpath}/likelihood.txt",
+        "--cell_lookup", f"{outpath}/cell_lookup.csv",
+        "--mut_lookup", f"{outpath}/mut_lookup.csv",
+        "--npass", "1"
+
+
+
+    ])
+        # pred_cell = "{run_dir}/grid_search_thresh{thresh}/TN{sample}/s{seed}_starts{starts}_iterations{iterations}_lamb{lamb}_tau{tau}_r{radius}/pred_cell.csv",
+        # pred_mut = "{run_dir}/grid_search_thresh{thresh}/TN{sample}/s{seed}_starts{starts}_iterations{iterations}_lamb{lamb}_tau{tau}_r{radius}/pred_mut.csv",
+        # grow_png ="{run_dir}/grid_search_thresh{thresh}/TN{sample}/s{seed}_starts{starts}_iterations{iterations}_lamb{lamb}_tau{tau}_r{radius}/best_tree.png",
+        # grow_pickle = "{run_dir}/grid_search_thresh{thresh}/TN{sample}/s{seed}_starts{starts}_iterations{iterations}_lamb{lamb}_tau{tau}_r{radius}/best_tree.pickle",
+        # pre_proc_pickle="{run_dir}/grid_search_thresh{thresh}/TN{sample}/s{seed}_starts{starts}_iterations{iterations}_lamb{lamb}_tau{tau}_r{radius}/tree_list.pickle",
+        # cell_lookup = "{run_dir}/grid_search_thresh{thresh}/TN{sample}/s{seed}_starts{starts}_iterations{iterations}_lamb{lamb}_tau{tau}_r{radius}/cell_lookup.csv",
+        # mut_lookup =  "{run_dir}/grid_search_thresh{thresh}/TN{sample}/s{seed}_starts{starts}_iterations{iterations}_lamb{lamb}_tau{tau}_r{radius}/mut_lookup.csv",
+        # likelihood = "{run_dir}/grid_search_thresh{thresh}/TN{sample}/s{seed}_starts{starts}_iterations{iterations}_lamb{lamb}_tau{tau}_r{radius}/likelihood.txt",
+
+        #    "python /scratch/data/leah/phertilizer/phertilizer/phertilizer/run.py -f {input.dataframe} --bin_count_data {input.reads_per_bin_file} "
+        # "-d {wildcards.seed} -j {wildcards.iterations} -s {wildcards.starts} -a {params.fp} --npass {params.npass}  "
+        # " -c {params.copies} -m {output.pred_mut} -n {output.pred_cell} --radius {wildcards.radius}  "
+        # "--tree {output.grow_png} --tree_pickle {output.grow_pickle} --likelihood {output.likelihood} --tree_path {params.dir} "
+        # "--tree_list {output.pre_proc_pickle}  --cell_lookup {output.cell_lookup} --mut_lookup {output.mut_lookup} "
+        # " > {log.std} 2> {log.err} "
 
     return(args)
 

@@ -138,6 +138,7 @@ def normalizedMinCut( W, index):
     D = np.diag(W.sum(axis=1))
     eig_vals, vecs = eigh(D-W, D)
     y_vals = Series(vecs[:,1], index=index)
+    # y_vals.to_csv("/scratch/data/leah/phertilizer/DLP/clones17/vec_vals.csv", index=False)
     v= np.sort(vecs[:,1])
     
     #calculate statistics on clustering 

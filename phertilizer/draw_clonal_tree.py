@@ -55,7 +55,7 @@ def bins_to_string(bins, bin2chrom=None):
         return ', '.join(s)
 
 class DrawClonalTree:
-    def __init__(self, clonal_tree, bin2chrom=None):
+    def __init__(self, clonal_tree, bin2chrom=None, include_likelihood=False):
         self.T = clonal_tree.tree
         self.nodes = tuple(self.T.nodes())
         self.cm = clonal_tree.cell_mapping
@@ -63,23 +63,36 @@ class DrawClonalTree:
         self.ml = clonal_tree.mut_loss_mapping
         self.em = clonal_tree.event_mapping
 
-        self.node_likelihood = clonal_tree.node_likelihood
+        if include_likelihood:
+
+            self.node_likelihood = clonal_tree.node_likelihood
+        else:
+            self.node_likelihood = {}
         self.likelihood, var_like, bin_like = clonal_tree.get_loglikelihood()
         self.bin2chrom = bin2chrom
 
-        self.include_subclusters = any([len(self.cm[n]) > 1 for n in self.nodes])
+        self.include_subclusters = any([len(self.cm[n]) > 1 for n in self.cm])
         
         
 
         
 
-        self.cell_count = {n : len(np.concatenate([self.cm[n][k]  for k in self.cm[n]])) for n in self.nodes}
-        self.mut_count = {n : len(self.mm[n]) for n in self.nodes}
+        self.cell_count = {n : len(np.concatenate([self.cm[n][k]  for k in self.cm[n]])) for n in self.cm}
+        self.mut_count = {n : len(self.mm[n]) for n in self.mm}
         
         
 
         if not clonal_tree.has_loss():
-            self.labels = {n: str(n) + "\nCells:" + str(self.cell_count[n]) + "\n+SNVs:" + str(self.mut_count[n])  for n in self.nodes}
+            self.labels = {}
+            for n in self.nodes:
+                lab =str(n)
+                if n in self.cm:
+                    lab += f"\nCells: {self.cell_count[n]}"
+                if n in self.mut_count:
+                    lab += f"\nSNVs: {self.mut_count[n]}"
+
+                self.labels[n] = lab
+            # self.labels = {n: str(n) + "\nCells:" + str(self.cell_count[n]) + "\n+SNVs:" + str(self.mut_count[n])  for n in self.nodes}
             for n in self.node_likelihood:
                 for key in self.node_likelihood[n]:
                     like_value = np.round(self.node_likelihood[n][key])
@@ -151,16 +164,17 @@ class DrawClonalTree:
         for n in self.nodes:
 
             self.tree.add_node(n, label=self.labels[n])
-            if len(self.cm[n]) > 1 and self.include_subclusters:
-                subgraph = [n]
+            # if 
+            #     len(self.cm[n]) > 1 and self.include_subclusters:
+            #     subgraph = [n]
 
-                for s in self.cm[n]:
-                    index += 1
-                    subgraph.append(index)
-                    self.tree.add_node(index, label=f"Cells {n}_{s}: {len(self.cm[n][s])}")
+            #     for s in self.cm[n]:
+            #         index += 1
+            #         subgraph.append(index)
+            #         self.tree.add_node(index, label=f"Cells {n}_{s}: {len(self.cm[n][s])}")
            
     
-                    self.tree.add_subgraph(subgraph, name=f"cluster_{n}", label=f"Cluster {n}")
+            #         self.tree.add_subgraph(subgraph, name=f"cluster_{n}", label=f"Cluster {n}")
         self.tree.add_edges_from(list(self.T.edges))
 
 

@@ -17,6 +17,7 @@ class Data:
     copy_distance : np.array = None
     cna_hmm : CNA_HMM = None
     snv_bin_mapping : pd.Series = None
+    use_read_depth : bool = True
   
 
 

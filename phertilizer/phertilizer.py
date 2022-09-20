@@ -4,6 +4,9 @@ import pandas as pd
 import scipy.special
 from scipy.spatial.distance import pdist, squareform
 import numba
+import umap
+
+from utils import pickle_save
 
 # from phertilizer.cna_events import CNA_HMM
 # import phertilizer.branching_split as bs
@@ -24,6 +27,7 @@ from params import Params
 from clonal_tree import IdentityTree
 from collections import deque
 from clonal_tree_list import ClonalTreeList
+import matplotlib.pyplot as plt
 
 
 
@@ -225,10 +229,14 @@ class Phertilizer:
                       alpha = 0.001,
                       max_copies = 5,
                       neutral_mean = 1.0,
-                      neutral_eps = 0.05
+                      neutral_eps = 0.05,
+                      mode  = "var"
                       ):
    
-
+        if mode == "var":
+            use_read_depth =False
+        else:
+            use_read_depth = True
         self.states = ("gain", "loss", "neutral")
         self.cna_genotype_mode = bin_count_normal is not None and snv_bin_mapping is not None
      
@@ -259,7 +267,9 @@ class Phertilizer:
         
         variant_count_data= variant_count_data.set_index(["cell", "mutation"])
 
-     
+        # pickle_save(cell_lookup,"/scratch/data/leah/phertilizer/ACT/run/TN3_post/cell_lookup.pickle")
+        # pickle_save(mut_lookup,"/scratch/data/leah/phertilizer/ACT/run/TN3_post/mut_lookup.pickle")
+
 
     
         if self.cna_genotype_mode:
@@ -308,9 +318,37 @@ class Phertilizer:
         else:
             bin_count_data['cell_index'] = cell_series[bin_count_data['cell']].values
             bin_count_data = bin_count_data.sort_values(by=['cell_index'])
+            cells = bin_count_data["cell"].to_numpy().reshape(-1,1)
             bin_count_data.drop(['cell', 'cell_index'], inplace=True, axis=1)
             bin_count_data = bin_count_data.to_numpy()
-            copy_distance = squareform(pdist(bin_count_data, metric="euclidean"))
+            bin_count_data = bin_count_data/(bin_count_data.sum(axis=1).reshape(-1,1))
+        #    umap_dist = "manhattan",
+        #              umap_min_dist = 0,
+        #              umap_spread = 1,
+        #              umap_n_neighbors = 40,
+            if True:
+                # import phate
+                # phate_op = phate.PHATE()
+                # embedding= phate_op.fit_transform(bin_count_data)
+                reducer = umap.UMAP(n_neighbors=40,
+                                    min_dist=0,
+                                    n_components=2,
+                                    spread=1,
+                                    metric="manhattan",
+                                    random_state=55)
+                embedding = reducer.fit_transform(bin_count_data)
+
+                # copy_distance = squareform(pdist(bin_count_data, metric="euclidean"))
+                copy_distance = squareform(pdist(embedding, metric="euclidean"))
+                plt.scatter(
+                                embedding[:, 0],
+                                embedding[:, 1])
+                plt.gca().set_aspect('equal', 'datalim')
+                plt.title('UMAP projection of Read Depth', fontsize=24)
+                plt.savefig("umap.png")
+                # emb_dat = np.hstack([cells, embedding])
+                # df = pd.DataFrame(emb_dat, columns=["cell", "V1", "V2"])
+                # df.to_csv("umap_coord.csv", index=False)
             cnn_hmm = None
         
      
@@ -353,11 +391,13 @@ class Phertilizer:
                         total,
                         like0,
                         like1_marg,
-                        bin_count_data,
+                        #bin_count_data,
+                        embedding,
                         like1_dict,
                         copy_distance,
                         cnn_hmm,
-                        snv_bin_mapping
+                        snv_bin_mapping,
+                        use_read_depth
                         )
     
 
@@ -484,6 +524,12 @@ class Phertilizer:
         print("\nIdentifying the maximum likelihood clonal tree....")
        
         optimal_tree, loglikelihoods = pre_proc_trees.find_best_tree(self.data)
+
+
+        post_proc = False
+        if post_proc:
+            print("Post-processing...")
+            loglike = optimal_tree.post_process(self.data, 0.1, 20)
         
         return optimal_tree, pre_proc_trees, loglikelihoods
 

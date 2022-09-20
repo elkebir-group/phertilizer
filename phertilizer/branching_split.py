@@ -228,6 +228,7 @@ class Branching_split():
             c_mat = self.data.copy_distance[np.ix_(cells, cells)]
 
             r = np.quantile(c_mat, self.radius)
+            # if np.max(c_mat) > 4:
             if np.max(c_mat) > 1:
                 copy_kernel = np.exp(-1*c_mat/cnv_kernel_width(c_mat))
                 copy_kernel[c_mat >= r] = 0

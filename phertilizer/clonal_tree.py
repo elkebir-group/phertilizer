@@ -314,6 +314,20 @@ class ClonalTree:
             y_dict[node] = y
 
         return y_dict
+    
+    def cell_cluster_genotypes(self, n=None):
+        if n is None:
+            n = len(self.get_all_cells())
+        c_dict = {}
+        for node in self.cell_mapping:
+            c = np.zeros(n, dtype=int)
+            present_clade = list(nx.dfs_preorder_nodes(self.tree, node))
+            present_cells = np.concatenate([self.cell_mapping[i][0] for i in present_clade])
+   
+            c[present_cells] = 1
+            c_dict[node] = c
+
+        return c_dict
 
     def presence_by_node(self, m, cells, node):
 
@@ -393,6 +407,24 @@ class ClonalTree:
 
     def save(self, path):
         pickle_save(self, path)
+    
+
+    def save_text(self, path):
+        
+        
+        leafs = [n for n in self.tree.nodes if len(list(self.tree.successors(n))) ==0]
+      
+                    
+        with open(path, "w+") as file:
+            file.write(f"{len(list(self.tree.edges))} #edges\n")
+            for u,v in list(self.tree.edges):
+                file.write(f"{u} {v}\n")
+            file.write(f"{len(leafs)} #leaves\n")
+            for l in leafs:
+                file.write(f"{l}\n")
+            
+     
+            
 
     def tree_png(self, fname, chrom_map_file: str = None):
         #self.node_events = self.relabel()
@@ -483,6 +515,155 @@ class ClonalTree:
 
         return self.node_events
 
+
+    def find_bad_cells(self, data, node, q):
+     
+        clade = list(nx.dfs_preorder_nodes(self.tree, node))
+     
+        cells = np.concatenate([self.cell_mapping[c][0] for c in clade])
+        muts = self.mut_mapping[node]
+        tot_count = np.count_nonzero(
+                data.total[np.ix_(cells, muts)], axis=1).reshape(-1)
+        na_cells = cells[tot_count ==0]
+        cells = np.setdiff1d(cells, na_cells)
+        mut_count = np.count_nonzero(
+                data.var[np.ix_(cells, muts)], axis=1).reshape(-1)
+        tot_count = np.count_nonzero(
+                data.total[np.ix_(cells, muts)], axis=1).reshape(-1)
+        cmb = mut_count/tot_count
+        cutoff= np.quantile(cmb, q)
+        bad_cells = cells[cmb <= cutoff]
+      
+        return np.union1d(bad_cells, na_cells)
+
+    # def find_bad_snvs(self, data, node, q):
+    #     succ_nodes = list(nx.dfs_preorder_nodes(self.tree, node))
+    #     clade = [n for n in self.tree.nodes if n not in succ_nodes]
+    #     cells = np.concatenate([self.cell_mapping[c][0] for c in clade])
+    #     muts = self.mut_mapping[node]
+    #     mut_count = np.count_nonzero(
+    #             data.var[np.ix_(cells, muts)], axis=0).reshape(-1)
+    #     tot_count = np.count_nonzero(
+    #             data.total[np.ix_(cells, muts)], axis=0).reshape(-1)
+    #     binary_vaf = mut_count/tot_count
+    #     cutoff = np.quantile(binary_vaf, 1-q)
+    #     bad_snvs =muts[binary_vaf >= cutoff]
+    #     return bad_snvs
+
+
+    def find_bad_snvs(self, data, node, q):
+        clade = list(nx.dfs_preorder_nodes(self.tree, node))
+   
+        cells = np.concatenate([self.cell_mapping[c][0] for c in clade])
+        muts = self.mut_mapping[node]
+        tot_count = np.count_nonzero(
+                data.total[np.ix_(cells, muts)], axis=0).reshape(-1)
+
+        na_snvs = muts[tot_count ==0]
+        muts = np.setdiff1d(muts, na_snvs)
+
+        tot_count = np.count_nonzero(
+                data.total[np.ix_(cells, muts)], axis=0).reshape(-1)
+        mut_count = np.count_nonzero(
+                data.var[np.ix_(cells, muts)], axis=0).reshape(-1)
+
+        binary_vaf = mut_count/tot_count
+        cutoff = np.quantile(binary_vaf, q)
+        bad_snvs =muts[binary_vaf <= cutoff]
+    
+        return np.union1d(bad_snvs,na_snvs)
+
+    def get_cell_cluster(self, c):
+        for node in self.cell_mapping:
+            if c in self.cell_mapping[node][0]:
+                return node
+
+    def get_snv_cluster(self, s):
+        for node in self.mut_mapping:
+            if s in self.mut_mapping[node]:
+                return node  
+
+    def reassign_cell(self, c, y_dict, data):
+        clust = self.get_cell_cluster(c)
+        y = y_dict[clust]
+        like0 = data.like0[c,:]
+        like1 = data.like1_marg[c,:]
+        best_like =np.dot(y,like1) + np.dot(1-y, like0)
+
+        original_like = best_like
+   
+        best_clust = clust 
+  
+        for node, y in y_dict.items():
+           node_like =np.dot(y,like1) + np.dot(1-y, like0)
+           if node_like > best_like:
+                best_like = node_like
+                best_clust = node
+        
+        if best_clust != clust:
+            self.cell_mapping[clust][0] = np.setdiff1d(self.cell_mapping[clust][0],np.array(c))
+            self.cell_mapping[best_clust][0] = np.union1d(self.cell_mapping[best_clust][0],np.array(c))
+        
+
+        if original_like > best_like:
+            print(f"cell: {c} clust: {clust} original like {original_like} best like {best_like}")
+
+    def reassign_snv(self, s, c_dict, data):
+        clust = self.get_snv_cluster(s)
+        
+        like0 = data.like0[:,s]
+        like1 = data.like1_marg[:,s]
+        best_clust = clust 
+        best_like = np.NINF
+        for node, y in c_dict.items():
+           node_like =np.dot(y,like1) + np.dot(1-y, like0)
+           if node_like > best_like:
+                best_like = node_like
+                best_clust = node
+        
+        if best_clust != clust:
+            self.mut_mapping[clust] = np.setdiff1d(self.mut_mapping[clust],np.array(s))
+            self.mut_mapping[best_clust]= np.union1d(self.mut_mapping[best_clust],np.array(s))
+
+
+
+    def post_process(self, data, q, iterations=1):
+        nodes = list(nx.dfs_postorder_nodes(self.tree, source=self.find_root()))
+        loglikelihood = self.compute_likelihood(data)
+        print(f'loglikelihood {loglikelihood}')
+        prev_loglikelihood = loglikelihood
+        for i in range(iterations):
+            
+            c_dict = self.cell_cluster_genotypes()
+            for n in nodes:
+                if n != self.find_root():
+                    muts = self.find_bad_snvs(data, n,q)
+                
+                    for s in muts:
+                        self.reassign_snv(s, c_dict, data)
+                    loglikelihood = self.compute_likelihood(data)
+                    print(f'iteration {i} node: {n} variant {self.variant_likelihood} loglike: {loglikelihood}')
+                cells = self.find_bad_cells(data, n,q)
+                y_dict = self.snv_genotypes()
+                for c in cells:
+                    self.reassign_cell(c, y_dict,data)
+
+                loglikelihood = self.compute_likelihood(data)
+                print(f'iteration {i} node: {n} variant {self.variant_likelihood} loglike: {loglikelihood}')
+            
+            #check for termination if no improvements are made 
+            if prev_loglikelihood == loglikelihood:
+                break
+            else:
+                prev_loglikelihood = loglikelihood
+        
+        return loglikelihood
+        
+ 
+
+            
+
+
     def get_ancestor_pairs(self, include_loss: bool=True) -> Counter:
         pairs = Counter()
         for node in self.tree.nodes:
@@ -567,6 +748,7 @@ class ClonalTree:
 
     def compute_likelihood(self, data):
 
+        self.use_rd = data.use_read_depth
       
         self.loglikelihood_dict = {"total": 0, "variant": 0, "bin": 0}
         self.node_likelihood = {}
@@ -734,7 +916,7 @@ class LinearTree(ClonalTree):
         super().__init__(t, cm, mm, ml, em)
 
     def is_valid(self, lamb, tau):
-        return len(self.get_tip_cells(0)) > lamb and len(self.mut_mapping[0]) > tau and len(self.get_tip_cells(1)) > lamb and len(self.get_tip_muts(1)) > tau
+        return len(self.get_tip_cells(0)) > lamb and len(self.mut_mapping[0]) > tau and len(self.get_tip_cells(1)) > lamb #and len(self.get_tip_muts(1)) > tau
 
     def get_seeds(self, lamb, tau, ancestral_muts):
         seed_list = []
@@ -772,10 +954,16 @@ class BranchingTree(ClonalTree):
         super().__init__(t, cm, mm, ml, em)
 
     def is_valid(self, lamb, tau):
-        if (len(self.get_tip_cells(1)) > lamb and len(self.mut_mapping[1]) > tau) or (len(self.get_tip_cells(2)) > lamb and len(self.mut_mapping[2]) > tau):
-            return True
-        else:
-            return False
+        cells_valid = len(self.get_tip_cells(1)) > lamb and len(self.get_tip_cells(2)) > lamb
+
+        muts_valid =len(self.mut_mapping[1]) > tau or len(self.mut_mapping[2]) > tau 
+
+        return muts_valid and cells_valid
+
+        # if (len(self.get_tip_cells(1)) > lamb and len(self.mut_mapping[1]) > tau) or (len(self.get_tip_cells(2)) > lamb and len(self.mut_mapping[2]) > tau):
+        #     return True
+        # else:
+        #     return False
 
     def get_seeds(self, lamb, tau, ancestral_muts):
 

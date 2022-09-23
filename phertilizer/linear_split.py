@@ -7,7 +7,7 @@ from scipy.spatial.distance import pdist, squareform
 
 from clonal_tree import LinearTree
 from clonal_tree_list import ClonalTreeList
-from utils import normalizedMinCut, check_stats, snv_kernel_width, cnv_kernel_width, impute_mut_features
+from utils import normalizedMinCut, check_stats, snv_kernel_width, cnv_kernel_width, impute_mut_features, check_obs
 
 
 # from phertilizer.clonal_tree import LinearTree
@@ -125,6 +125,9 @@ class Linear_split():
 
         self.radius = params.radius
         self.npass = params.npass
+
+        self.use_copy_kernel = params.use_copy_kernel
+    
 
         self.iterations = params.iterations
         self.starts = params.starts
@@ -317,14 +320,14 @@ class Linear_split():
             c_mat = self.copy_distance_matrix[np.ix_(cells, cells)]
 
             r = np.quantile(c_mat, self.radius)
-            if np.max(c_mat) > 1:
+            if self.use_copy_kernel:
 
                 copy_kernel = np.exp(-1*c_mat/cnv_kernel_width(c_mat))
                 copy_kernel[c_mat > r] = 0
                 kernel = np.multiply(kernel, copy_kernel)
 
-            else:
-                print("Using SNV kernel only")
+            # else:
+            #     print("Using SNV kernel only")
 
             return kernel, mb_mut_count_series
 
@@ -430,13 +433,14 @@ class Linear_split():
         '''
 
 
-        if len(cells) > 2*self.lamb:
+        if check_obs(cells, muts, self.total) >= 4113:
             internal_tree_list = ClonalTreeList()
             norm_list = []
 
             for s in range(self.starts):
 
                 mutsA, mutsB = self.random_weighted_init_array(cells, muts, p)
+                mutsA, mutsB = self.random_init_array( muts, p)
                 oldCellsA = cells
                 for j in range(self.iterations):
                     cellsA, cellsB, stats = self.cluster_cells(cells, mutsB)
@@ -449,7 +453,8 @@ class Linear_split():
 
                     mutsA, mutsB = self.mut_assignment(cellsA, muts)
 
-                if len(cellsA) > self.lamb and len(mutsA) > self.tau and len(cellsB) > 5:
+                if len(cellsA) >0 and len(cellsB) > 0:
+                # if len(cellsA) > self.lamb and len(mutsA) > self.tau and len(cellsB) > 5:
                     if check_stats(stats, self.jump_percentage, self.spectral_gap, self.npass):
 
                         cellsB_tree = np.setdiff1d(self.cells, cellsA)
@@ -535,6 +540,28 @@ class Linear_split():
       
         """
 
+        # var_counts_by_snv= self.var[np.ix_(self.cells, self.muts)].sum(axis=0)
+        # bad_snvs = self.muts[var_counts_by_snv==0]
+        # self.muts = np.setdiff1d(self.muts, bad_snvs)
+        
+        # var_counts_by_cells = self.var[np.ix_(self.cells,self.muts)].sum(axis=1)
+        # bad_cells = self.cells[var_counts_by_cells ==0]
+        # self.cells = np.setdiff1d(self.cells, bad_cells)
+
+        #check the average number of observations per cell and snv
+        # cell_mean_val = check_obs(self.cells, self.muts, self.total, axis=1)
+        # print(cell_mean_val)
+        # snv_mean_val = check_obs(self.cells, self.muts, self.total, axis=0)
+        # print(snv_mean_val)
+
+        # if cell_mean_val <=  12 or snv_mean_val <= 12:
+        #     return None
+        
+        # seed_obs = check_obs(self.cells, self.muts, self.total)
+        # if seed_obs < self.params.minobs:
+        #     return None
+
+
         self.norm_like_list = []
 
         self.cand_splits = ClonalTreeList()
@@ -547,5 +574,9 @@ class Linear_split():
         best_tree_index = np.argmax(np.array(self.norm_like_list))
 
         best_tree_like = self.cand_splits.index_tree(best_tree_index)
+        # cellsA = best_tree_like.cell_mapping[0][0]
+        # best_tree_like.cell_mapping[0][0]=np.union1d(bad_cells, cellsA)
+        # mutsA =  best_tree_like.mut_mapping[0]
+        # best_tree_like.mut_mapping[0] = np.union1d(bad_snvs, mutsA)
 
         return best_tree_like

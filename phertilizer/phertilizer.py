@@ -6,7 +6,7 @@ from scipy.spatial.distance import pdist, squareform
 import numba
 import umap
 
-from utils import pickle_save
+from utils import pickle_save, check_obs, power_calc
 
 # from phertilizer.cna_events import CNA_HMM
 # import phertilizer.branching_split as bs
@@ -383,7 +383,8 @@ class Phertilizer:
     
         total= sparse_matrix(pd.Series(variant_count_data['total'].to_numpy(), index=variant_count_data.index))
        
-        self.params = Params()
+
+
         
         self.data = Data(cell_lookup, 
                         mut_lookup,
@@ -397,7 +398,7 @@ class Phertilizer:
                         copy_distance,
                         cnn_hmm,
                         snv_bin_mapping,
-                        use_read_depth
+                        use_read_depth,
                         )
     
 
@@ -424,8 +425,12 @@ class Phertilizer:
                     max_iterations =10, 
                     starts =3,
                     seed=1026, 
-                    radius=0.5, 
-                    npass=1):
+                    radius=0.8, 
+                    npass=1,
+                    gamma=0.95,
+                    d=7,
+                    use_copy_kernel=False,
+                    post_process=False):
         '''Recursively enumerates all clonal trees on the given input data and
         identifies the clonal tree with maximum likelihood 
 
@@ -469,6 +474,9 @@ class Phertilizer:
 
         '''
 
+        Nmax = check_obs(self.cells, self.muts, self.data.total)
+        minobs = power_calc(d, gamma, 6, Nmax)
+        self.params = Params()
         self.rng = np.random.default_rng(seed)
         n = len(self.cells)
         if type(min_cell) == float:
@@ -496,7 +504,9 @@ class Phertilizer:
                             spectral_gap, 
                             jump_percentage, 
                             radius, 
-                            npass)
+                            npass,
+                            minobs,
+                            use_copy_kernel)
    
 
         seed_list = deque()
@@ -525,12 +535,15 @@ class Phertilizer:
        
         optimal_tree, loglikelihoods = pre_proc_trees.find_best_tree(self.data)
 
-
-        post_proc = False
-        if post_proc:
+        if optimal_tree is None:
+            optimal_tree =IdentityTree(self.cells, self.muts)
+  
+        if post_process:
             print("Post-processing...")
-            loglike = optimal_tree.post_process(self.data, 0.1, 20)
+            loglike = optimal_tree.post_process(self.data)# 0.1, 20)
         
+     
+
         return optimal_tree, pre_proc_trees, loglikelihoods
 
     
@@ -547,24 +560,28 @@ class Phertilizer:
         '''
         
         key = 0
-    
+        sprout_list = [  self.sprout_linear, self.sprout_branching]
         while len(seed_list) > 0:
            
             curr_seed = seed_list.pop()
             curr_seed.set_key(key)
 
-            if len(curr_seed.cells) < 2*self.params.lamb or len(curr_seed.muts) < 2*self.params.tau:
+            # if len(curr_seed.cells) < 2*self.params.lamb or len(curr_seed.muts) < 2*self.params.tau:
+            #     continue
+            curr_seed.strip(self.data.var)
+            nobs = curr_seed.count_obs(self.data.total)
+         
+            if nobs < self.params.minobs:
+                print(curr_seed)
+                print("Insufficient number of observations, seed is terminal")
                 continue
             
             print("Starting k-clonal tree inference for seed:")
-            print(curr_seed)
             self.explored_seeds[key] =curr_seed
     
         
             self.mapping_list[key] = []
 
-                   
-            sprout_list = [  self.sprout_linear, self.sprout_branching]
 
             for sprout in sprout_list:
 
@@ -574,20 +591,18 @@ class Phertilizer:
                 #perform an elementary tree operation from the given seed
                 tree = sprout(curr_seed)
 
-              
-              
                 if tree is not None:
                     
-                    if tree.is_valid(self.params.lamb, self.params.tau):
-                        print("\nSprouted tree:")
-                        print(tree)
+                    # if tree.is_valid(self.params.lamb, self.params.tau):
+                    print("\nSprouted tree:")
+                    print(tree)
              
-                        self.mapping_list[key].append(tree)
-                        new_seeds = tree.get_seeds(self.params.lamb, self.params.tau, curr_seed.ancestral_muts)
-                        for seed in new_seeds:
-                            seed_list.append(seed)
-                    else:
-                        print("Inferred elementary tree not valid!")
+                    self.mapping_list[key].append(tree)
+                    new_seeds = tree.get_seeds(self.params.lamb, self.params.tau, curr_seed.ancestral_muts)
+                    for seed in new_seeds:
+                        seed_list.append(seed)
+                    # else:
+                    #     print("Inferred elementary tree not valid!")
                         
                 else:
                     print("No inferred elementary tree.")

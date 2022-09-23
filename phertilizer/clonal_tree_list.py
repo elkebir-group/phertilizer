@@ -221,6 +221,7 @@ class ClonalTreeList:
             print(tree)
             keys.append(tree.key)
             log_likelihood = tree.compute_likelihood(data)
+            log_likelihood = tree.norm_loglikelihood 
             print(f"Log Likelihood: {log_likelihood}\n")
 
             log_likelihood_array[i] = log_likelihood

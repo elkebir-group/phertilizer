@@ -11,6 +11,8 @@ class Params:
     jump_percentage : float = 0.075
     radius : float = 0.5
     npass : int = 1
+    minobs: int = 4113
+    use_copy_kernel: bool = False
     def __post_init__(self):
         if self.radius > 1:
             self.radius = 1

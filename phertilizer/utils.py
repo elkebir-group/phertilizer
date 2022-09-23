@@ -7,7 +7,7 @@ import pickle
 from scipy.linalg import eigh
 from sklearn.cluster import AgglomerativeClustering
 import networkx as nx
-
+from scipy.special import comb 
 
 
 def timing(f):
@@ -175,7 +175,28 @@ def normalizedMinCut( W, index):
     
    
 
+# def check_obs(cells, muts, total, axis=0):
+#     nobs =np.count_nonzero(total[np.ix_(cells,muts)], axis=axis)
+#     return nobs.mean()
 
+def success_prob(N,parts, d):
+  denom = comb(N+ parts-1, N)
+  obs_freedom = N -parts*d
+  num = comb(obs_freedom + parts -1, obs_freedom)
+  return num/denom
+
+ 
+def power_calc(d,gamma, parts, Nmax):
+    
+    for n in range(1,Nmax+1):
+        p = success_prob(n,parts, d)
+        if p >= gamma:
+            break 
+    return n   
+
+def check_obs(cells, muts, total):
+    nobs =np.count_nonzero(total[np.ix_(cells,muts)])
+    return nobs
 
 def get_next_label(T):
     """Computes the next incremental node label in the tree

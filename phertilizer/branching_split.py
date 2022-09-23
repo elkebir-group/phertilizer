@@ -9,7 +9,7 @@ import pandas as pd
 # from phertilizer.clonal_tree_list import ClonalTreeList
 
 from clonal_tree_list import ClonalTreeList
-from utils import normalizedMinCut, check_stats, snv_kernel_width, cnv_kernel_width, impute_mut_features, find_cells_with_no_reads, find_muts_with_no_reads
+from utils import normalizedMinCut, check_stats, snv_kernel_width, cnv_kernel_width, impute_mut_features, check_obs
 from clonal_tree import BranchingTree
 from clonal_tree_list import ClonalTreeList
 
@@ -99,6 +99,7 @@ class Branching_split():
 
 
         self.data = data
+        self.total = data.total
 
         self.cna_genotype_mode = cna_genotype_mode
 
@@ -116,6 +117,8 @@ class Branching_split():
 
         self.spectral_gap = params.spectral_gap
         self.jump_percentage = params.jump_percentage
+
+        self.use_copy_kernel = params.use_copy_kernel
 
         self.radius = params.radius
 
@@ -229,13 +232,14 @@ class Branching_split():
 
             r = np.quantile(c_mat, self.radius)
             # if np.max(c_mat) > 4:
-            if np.max(c_mat) > 1:
+            # if np.max(c_mat) > 1:
+            if self.use_copy_kernel:
                 copy_kernel = np.exp(-1*c_mat/cnv_kernel_width(c_mat))
                 copy_kernel[c_mat >= r] = 0
                 kernel = np.multiply(copy_kernel, kernel)
 
-            else:
-                print("Max copy distance < 1, using SNV kernel only")
+            # else:
+            #     print("Max copy distance < 1, using SNV kernel only")
 
             return kernel, mut_features_df
         else:
@@ -263,13 +267,13 @@ class Branching_split():
                 mutsC += np.ma.array(like1_mat[all_cells, :],
                                      mask=z != s).sum(axis=0)
 
-        combined_matrix = np.vstack([mutsA, mutsB, mutsC])
+        combined_matrix = np.vstack([mutsC,mutsA, mutsB ])
         mut_assignments = np.argmax(combined_matrix, axis=0).reshape(-1)
         mut_assignments = mut_assignments[self.muts]
 
-        mutsA = np.array(self.muts[mut_assignments == 0])
-        mutsB = np.array(self.muts[mut_assignments == 1])
-        mutsC = np.array(self.muts[mut_assignments == 2])
+        mutsA = np.array(self.muts[mut_assignments == 1])
+        mutsB = np.array(self.muts[mut_assignments == 2])
+        mutsC = np.array(self.muts[mut_assignments == 0])
 
         return mutsA, mutsB, mutsC
 
@@ -361,14 +365,29 @@ class Branching_split():
             axis=0) + like1[np.ix_(cellsB, self.muts)].sum(axis=0)
         mutsC_cand = like1[np.ix_(cellsA, self.muts)].sum(
             axis=0) + like1[np.ix_(cellsB, self.muts)].sum(axis=0)
+        
+        # nobs = np.count_nonzero(self.total[:,self.muts], axis=0)
+        # a_obs = self.total[np.ix_(cellsA,self.muts)]
+        # a_obs = np.count_nonzero(a_obs,axis=0)
+        # b_obs = self.total[np.ix_(cellsB,self.muts)]
+        # b_obs =np.count_nonzero(b_obs, axis=0)
+        # a_weight=a_obs/nobs
+        # b_weight=b_obs/nobs
+        # mutsA_cand = like1[np.ix_(cellsA, self.muts)].sum(
+        #     axis=0)*a_weight + self.data.like0[np.ix_(cellsB, self.muts)].sum(axis=0)*b_weight
+        # mutsB_cand = a_weight*self.data.like0[np.ix_(cellsA, self.muts)].sum(
+        #     axis=0) + b_weight*like1[np.ix_(cellsB, self.muts)].sum(axis=0)
+        # mutsC_cand = a_weight*like1[np.ix_(cellsA, self.muts)].sum(
+        #     axis=0) + b_weight*like1[np.ix_(cellsB, self.muts)].sum(axis=0)
 
+        # for idx, m in enumerate(self.muts):
         for idx, m in enumerate(self.muts):
-            if mutsA_cand[idx] == max(mutsA_cand[idx], mutsB_cand[idx], mutsC_cand[idx]):
-                mutsA.append(m)
+            if mutsC_cand[idx] == max(mutsA_cand[idx], mutsB_cand[idx], mutsC_cand[idx]):
+                mutsC.append(m)
             elif mutsB_cand[idx] == max(mutsA_cand[idx], mutsB_cand[idx], mutsC_cand[idx]):
                 mutsB.append(m)
             else:
-                mutsC.append(m)
+                mutsA.append(m)
 
         return np.array(mutsA), np.array(mutsB), np.array(mutsC)
 
@@ -427,8 +446,8 @@ class Branching_split():
 
             mutsA, mutsB, mutsC = self.mut_assignment(cellsA, cellsB)
 
-        if (len(cellsA) > self.lamb and len(cellsB) > 1) or (len(cellsB) > self.lamb and len(cellsA) > 1):
-
+        # if (len(cellsA) > self.lamb and len(cellsB) > 1) or (len(cellsB) > self.lamb and len(cellsA) > 1):
+        if len(cellsA) > 0 and len(cellsB) > 0:
             if check_stats(stats, self.jump_percentage, self.spectral_gap, self.npass):
 
                 cand_tree = BranchingTree(
@@ -445,6 +464,29 @@ class Branching_split():
       
         """
 
+        # var_counts_by_snv= self.data.var[np.ix_(self.cells, self.muts)].sum(axis=0)
+        # bad_snvs = self.muts[var_counts_by_snv==0]
+        # self.muts = np.setdiff1d(self.muts, bad_snvs)
+        
+        # var_counts_by_cells = self.data.var[np.ix_(self.cells,self.muts)].sum(axis=1)
+        # bad_cells = self.cells[var_counts_by_cells ==0]
+        # self.cells = np.setdiff1d(self.cells, bad_cells)
+
+        # cell_mean_val = check_obs(self.cells, self.muts, self.total, axis=1)
+        # print(cell_mean_val)
+        # snv_mean_val = check_obs(self.cells, self.muts, self.total, axis=0)
+        # print(snv_mean_val)
+
+        # seed_obs = check_obs(self.cells, self.muts, self.total)
+        # print(f"Number of Observations in Seed: {seed_obs}")
+        # if seed_obs < self.params.minobs:
+        #     return None
+
+
+        # if cell_mean_val <=  12 or snv_mean_val <= 12:
+        #     return None
+        
+
         self.cand_trees = ClonalTreeList()
 
         for i in range(self.starts):
@@ -453,6 +495,12 @@ class Branching_split():
 
         if self.cand_trees.has_trees():
             best_branching_tree, _ = self.cand_trees.find_best_tree(self.data)
+
+          
+            # cellsA = best_branching_tree.cell_mapping[0][0]
+            # best_branching_tree.cell_mapping[0][0]=np.union1d(bad_cells, cellsA)
+            # mutsA =  best_branching_tree.mut_mapping[0]
+            # best_branching_tree.mut_mapping[0] = np.union1d(bad_snvs, mutsA)
 
             return best_branching_tree
         else:

@@ -45,6 +45,8 @@ def main(args):
     print("Input data:")
     print(variant_data.head())
 
+  
+
     ph = Phertilizer(variant_data,
                      bin_count_data,
                      bin_count_normal,
@@ -54,6 +56,7 @@ def main(args):
                     neutral_mean = args.neutral_mean,
                     neutral_eps = args.neutral_eps,
                     mode = args.mode
+
                      )
 
     if args.min_frac is not None:
@@ -71,7 +74,12 @@ def main(args):
         starts=args.starts,
         seed=args.seed,
         radius=args.radius,
-        npass=args.npass)
+        npass=args.npass,
+        gamma= 0.95,
+        d = args.min_obs,
+        use_copy_kernel = args.use_copy_kernel,
+        post_process = args.post_process
+        )
     
 
 
@@ -126,8 +134,8 @@ def main(args):
     if args.pred_mut is not None:
         pmut.to_csv(args.pred_mut, index=False)
 
-    if args.pred_event is not None:
-        event_df.to_csv(args.pred_event)
+    # if args.pred_event is not None:
+    #     event_df.to_csv(args.pred_event)
 
     if args.tree_path is not None:
         pre_process_list.save_the_trees(args.tree_path)
@@ -178,8 +186,16 @@ def get_options():
                         help="output file for mutation clusters")
     parser.add_argument("-n", "--pred_cell",
                         help="output file cell clusters")
-    parser.add_argument("-e", "--pred_event",
-                        help="output file cna genotypes")
+    # parser.add_argument("-e", "--pred_event",
+    #                     help="output file cna genotypes")
+    parser.add_argument("-g", "--gamma", type=float, default=0.95,
+                        help="confidence level for power calculation to determine if there are sufficient observations for inference")
+    parser.add_argument("--min_obs", type=int, default=7,
+                        help = "lower bound on the minimum number of observations for a partition")
+    parser.add_argument("--use_copy_kernel", action="store_true",
+                        help="indicator if copy number kernel should be used in cell clustering")
+    parser.add_argument("--post_process", action="store_true", 
+                        help="indicator low support cells and snvs should be placed into tree after inference")
     parser.add_argument("--tree",
                         help="output file for png (dot) of Phertilizer tree")
     parser.add_argument("--tree_pickle",
@@ -202,7 +218,7 @@ def get_options():
                         help="filename where pickled data should be saved for post-processing")
     parser.add_argument("--params", type=str,
                         help="filename where pickled parameters should be save")      
-    args = parser.parse_args(None if sys.argv[1:] else ['-h'])
+    # args = parser.parse_args(None if sys.argv[1:] else ['-h'])
 
 #     inpath = "/scratch/data/leah/phertilizer/simulations/phertilizer/phert_input/s13_n1500_m2500_c7_p0.01_cna1_l0_loh0_dcl2_dsnv2_dcnv2"
 #     outpath = "/scratch/data/leah/phertilizer/simulations/phertilizer/tst_snv"
@@ -263,40 +279,48 @@ def get_options():
 
     # ])
    
-    # inpath = "/scratch/data/leah/phertilizer/DLP/input"
-    # outpath = "/scratch/data/leah/phertilizer/DLP/clones17/clone17_2"
+    # inpath = "/scratch/data/leah/phertilizer/DLP/clones/phert_clade3"
+    # outpath = "/scratch/data/leah/phertilizer/DLP/clones/phert_clade3"
+    # # inpath ="/scratch/data/leah/phertilizer/DLP/input"
+    # df = "variant_data.filt.tsv"
+    # reads_per_bin_file = "input/binned_read_counts.merged.tsv"
     # args = parser.parse_args([ 
-    #     "-f", f"{inpath}/clones1to7.tsv",
-    #     "--bin_count_data", f"{inpath}/clones1to7_bins.csv",
+    #     "-f", f"{inpath}/dataframe.tsv",
+    #     # "-f", f"{inpath}/{df}",
+    #     "--bin_count_data", f"{inpath}/bin_counts.csv",
+    #     # "--bin_count_data", f"{inpath}/binned_read_counts.merged.tsv",
     #     # "--bin_count_data", "/scratch/data/leah/phertilizer/ACT/input/TN2/paper_binned_read_counts.tsv",
     #     # "--bin_count_normal", "/scratch/data/leah/phertilizer/simulations/normal_samples/normal_cells_p0.01.tsv",
     #     # "--snv_bin_mapping",f"{inpath}/snv_bin_reformatted.csv",
  
     #     # "--min_frac", "0.015",
-    #     "--min_cells", "13",
-    #     "--min_snvs", "211",
-    #     "-d", "5",
+    #     # "--min_cells", "13",
+    #     # "--min_snvs", "211",
+    #     # "--min_cells", "13",
+    #     # "--min_snvs", "50",
+    #     "-d", "3",
     #     "-c", "5",
     #     "-j", "10",
-    #     "-s", "4",
+    #     "-s", "3",
     #     "-a", "0.001",
     #     "--radius", "0.9",
+    #     "--gamma", "0.95",
+    #     "--min_obs", "10",
+    #     "--post_process",
     #     "-m", f"{outpath}/pred_mut.csv",
     #     "-n", f"{outpath}/pred_cell.csv",
     #     "--tree", f"{outpath}/best_tree.png",
-    #     "--tree_path", f"{outpath}",
     #     "--tree_text", f"{outpath}/best_tree.txt",
     #     "--tree_pickle", f"{outpath}/best_tree.pickle",
-    #     "--tree_list", f"{outpath}/tree_list.pickle",
+    #     # "--tree_list", f"{outpath}/tree_list.pickle",
     #     "--likelihood", f"{outpath}/likelihood.txt",
     #     "--cell_lookup", f"{outpath}/cell_lookup.csv",
     #     "--mut_lookup", f"{outpath}/mut_lookup.csv",
     #     "--npass", "2",
     #     "--mode", "rd"
-
-
-
     # ])
+
+
     return(args)
 
 

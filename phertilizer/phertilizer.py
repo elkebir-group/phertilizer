@@ -6,7 +6,7 @@ from scipy.spatial.distance import pdist, squareform
 import numba
 import umap
 
-from utils import pickle_save, check_obs, power_calc
+from utils import pickle_save, check_obs, power_calc, pickle_load
 
 # from phertilizer.cna_events import CNA_HMM
 # import phertilizer.branching_split as bs
@@ -21,10 +21,10 @@ from utils import pickle_save, check_obs, power_calc
 from cna_events import CNA_HMM
 import branching_split as bs
 import linear_split as ls
-from seed import Seed
+
 from data import Data
 from params import Params
-from clonal_tree import IdentityTree
+from clonal_tree import IdentityTree, LinearTree, Seed
 from collections import deque
 from clonal_tree_list import ClonalTreeList
 import matplotlib.pyplot as plt
@@ -327,16 +327,18 @@ class Phertilizer:
         #              umap_spread = 1,
         #              umap_n_neighbors = 40,
             if True:
+                embedding = pickle_load("embedding.pickle")
                 # import phate
                 # phate_op = phate.PHATE()
                 # embedding= phate_op.fit_transform(bin_count_data)
-                reducer = umap.UMAP(n_neighbors=40,
-                                    min_dist=0,
-                                    n_components=2,
-                                    spread=1,
-                                    metric="manhattan",
-                                    random_state=55)
-                embedding = reducer.fit_transform(bin_count_data)
+                # reducer = umap.UMAP(n_neighbors=40,
+                #                     min_dist=0,
+                #                     n_components=2,
+                #                     spread=1,
+                #                     metric="manhattan",
+                #                     random_state=55)
+                # embedding = reducer.fit_transform(bin_count_data)
+                pickle_save(embedding, "embedding.pickle")
 
                 # copy_distance = squareform(pdist(bin_count_data, metric="euclidean"))
                 copy_distance = squareform(pdist(embedding, metric="euclidean"))
@@ -346,6 +348,7 @@ class Phertilizer:
                 plt.gca().set_aspect('equal', 'datalim')
                 plt.title('UMAP projection of Read Depth', fontsize=24)
                 plt.savefig("umap.png")
+                
                 # emb_dat = np.hstack([cells, embedding])
                 # df = pd.DataFrame(emb_dat, columns=["cell", "V1", "V2"])
                 # df.to_csv("umap_coord.csv", index=False)
@@ -506,6 +509,7 @@ class Phertilizer:
                             radius, 
                             npass,
                             minobs,
+                            seed,
                             use_copy_kernel)
    
 
@@ -560,52 +564,73 @@ class Phertilizer:
         '''
         
         key = 0
-        sprout_list = [  self.sprout_linear, self.sprout_branching]
+        # sprout_list = [  self.sprout_linear, self.sprout_branching]
+        # sprout_list = [ self.sprout_linear]
         while len(seed_list) > 0:
            
             curr_seed = seed_list.pop()
             curr_seed.set_key(key)
+            print(curr_seed)
+            if len(curr_seed.cells)==3540 or len(curr_seed.cells)==3519:
+                print("here")
+            self.mapping_list[key] = []
+            
+            self.explored_seeds[key] = deepcopy(curr_seed)
+         
+            if curr_seed.has_linear():
+                sprout_list = [self.sprout_branching] 
+                print(curr_seed.linear_tree)
+                self.mapping_list[key].append(curr_seed.linear_tree)
 
+            elif curr_seed.has_branching():
+                sprout_list = [self.sprout_linear]
+                print(curr_seed.branching_tree)
+                self.mapping_list[key].append(curr_seed.branching_tree)
+            
+            else:
+                sprout_list =[ self.sprout_linear, self.sprout_branching]
+
+
+          
             # if len(curr_seed.cells) < 2*self.params.lamb or len(curr_seed.muts) < 2*self.params.tau:
             #     continue
             curr_seed.strip(self.data.var)
             nobs = curr_seed.count_obs(self.data.total)
-         
+           
             if nobs < self.params.minobs:
-                print(curr_seed)
+             
                 print("Insufficient number of observations, seed is terminal")
                 continue
             
             print("Starting k-clonal tree inference for seed:")
-            self.explored_seeds[key] =curr_seed
+      
     
-        
-            self.mapping_list[key] = []
-
-
+           
             for sprout in sprout_list:
 
                 print("Sprouting seed:")
                 print(curr_seed)
 
                 #perform an elementary tree operation from the given seed
-                tree = sprout(curr_seed)
+                tree, new_seeds = sprout(curr_seed)
 
                 if tree is not None:
                     
                     # if tree.is_valid(self.params.lamb, self.params.tau):
                     print("\nSprouted tree:")
                     print(tree)
-             
                     self.mapping_list[key].append(tree)
-                    new_seeds = tree.get_seeds(self.params.lamb, self.params.tau, curr_seed.ancestral_muts)
-                    for seed in new_seeds:
-                        seed_list.append(seed)
+                    seed_list += new_seeds
+                else:
+                    print("No inferred elementary tree.")
+              
+                    # new_seeds = tree.get_seeds(curr_seed.ancestral_muts)
+                    # for seed in new_seeds:
+                    #     seed_list.append(seed)
                     # else:
                     #     print("Inferred elementary tree not valid!")
                         
-                else:
-                    print("No inferred elementary tree.")
+     
                     
            
             print(f"Number of subproblems remaining: {len(seed_list)}")
@@ -625,7 +650,7 @@ class Phertilizer:
         s
             a matching seed in the list of explored seeds
         '''
-
+  
         for s in self.explored_seeds:
             if self.explored_seeds[s] == seed:
                 return s
@@ -666,6 +691,7 @@ class Phertilizer:
                     for l in leaf_nodes:
                         anc_muts = curr_tree.get_ancestral_muts(l)
                         seed = curr_tree.get_seed_by_node(l, self.params.lamb, self.params.tau, anc_muts)
+                    
                         if seed is None:
                             continue
                         seed_key = self.lookup_seed_key(seed)
@@ -678,7 +704,7 @@ class Phertilizer:
                                 if type(st) is not IdentityTree:
                                     merged_tree = deepcopy(curr_tree)
                                     merged_tree.merge(st, l)
-                                    print(merged_tree)
+                            
 
                                     if not pre_proc_list.contains(merged_tree):
                                         pre_proc_list.insert(merged_tree)
@@ -714,10 +740,17 @@ class Phertilizer:
                                       self.rng,  
                                       self.params,
                                     )
+
         
         branching_tree = br_split.sprout()
+        if branching_tree is not None:
 
-        return branching_tree
+
+            seed_list = branching_tree.get_seeds(np.empty(shape=0, dtype=int))
+        else:
+            seed_list = []
+
+        return branching_tree, seed_list
 
         
     def sprout_linear(self, seed):
@@ -740,11 +773,57 @@ class Phertilizer:
                                         self.rng,  
                                         self.params,
                                     )
-        
-        best_tree = lin_split.sprout()
+        ancestral_muts = np.empty(shape=0, dtype=int)
+        tree_list, best_tree = lin_split.sprout()
+
+        num_trees = tree_list.size()
+        if best_tree is not None:
+            seed_list =best_tree.get_seeds(ancestral_muts)
+            seed.set_linear(best_tree)
+            print(best_tree)
+            if num_trees > 2:
+                start = num_trees -1
+                # root = tree_list.index_tree(start)
+                cA = best_tree.get_tip_cells(0)
+                mA= best_tree.get_tip_muts(0)
+                # cB = np.setdiff1d(seed.cells, cA)
+                # mB  = np.setdiff1d(seed.muts, mA)
+                # prev_tree = LinearTree(cA, cB, mA, mB)
+                ca_cells = cA 
+                ma_muts = mA
+                start = start - 1
+                curr_seed = seed_list[0]
+            
+                while start > 0:
+                    next_tree= tree_list.index_tree(start)
+                    cA = next_tree.get_tip_cells(0)
+                    mA = next_tree.get_tip_muts(0)
+    
+                    ca_cells = np.setdiff1d(  cA, ca_cells)
+                    ma_muts = np.setdiff1d( mA, ma_muts)
+            
+                    next_tree.cell_mapping[0] = {0: ca_cells }
+                    next_tree.mut_mapping[0] = ma_muts
+                    print(curr_seed)
+                    curr_seed.set_linear(next_tree)
+                    ca_cells = cA
+                    ma_muts = mA
+                    print(next_tree)
+                    next_seeds = next_tree.get_seeds(ancestral_muts)
+                    seed_list += next_seeds
+                    
+                    curr_seed = next_seeds[0]
+                    print(curr_seed)
+            
+                    start = start -1
+        else:
+            seed_list = []
+
+            ##need to add last seed
 
 
-        return best_tree
+
+        return best_tree, seed_list
        
 
     def sprout_identity(self, seed):

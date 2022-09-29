@@ -98,6 +98,7 @@ class Branching_split():
                  ):
 
 
+
         self.data = data
         self.total = data.total
 
@@ -111,6 +112,7 @@ class Branching_split():
 
         self.npass = params.npass
         self.rng = rng
+        self.np_rng = np.random.RandomState(params.seed)
 
         self.starts = params.starts
         self.iterations = params.iterations
@@ -311,7 +313,7 @@ class Branching_split():
             print("Terminating cell clustering due to NANs in affinity matrix")
             return cells, np.empty(shape=0, dtype=int), None
 
-        clusters, y_vals, labels, stats = normalizedMinCut(W, cells)
+        clusters, y_vals, labels, stats = normalizedMinCut(W, cells, self.np_rng)
 
         cells1, cells2 = clusters
 
@@ -328,7 +330,8 @@ class Branching_split():
         else:
             cellsA = cells1
             cellsB = cells2
-
+        stats['min_avg_ma'] = min( avg_muts_ma[0], avg_muts_ma[1])
+        stats['max_avg_ma'] = max( avg_muts_ma[0] ,avg_muts_ma[1])
         return cellsA, cellsB, stats
 
     def mut_assignment(self, cellsA, cellsB):
@@ -448,8 +451,8 @@ class Branching_split():
 
         # if (len(cellsA) > self.lamb and len(cellsB) > 1) or (len(cellsB) > self.lamb and len(cellsA) > 1):
         if len(cellsA) > 0 and len(cellsB) > 0:
-            if check_stats(stats, self.jump_percentage, self.spectral_gap, self.npass):
-
+            # if check_stats(stats, self.jump_percentage, self.spectral_gap, self.npass):
+            # if stats['abs_avg_ma_diff'] > 2:
                 cand_tree = BranchingTree(
                     cellsA, cellsB, mutsA, mutsB, mutsC, eA, eB, eC=None)
                 self.cand_trees.insert(cand_tree)
@@ -492,6 +495,7 @@ class Branching_split():
         for i in range(self.starts):
 
             self.run()
+            self.use_copy_kernel = not self.use_copy_kernel
 
         if self.cand_trees.has_trees():
             best_branching_tree, _ = self.cand_trees.find_best_tree(self.data)

@@ -10,9 +10,16 @@ from scipy.stats import multivariate_normal
 # from phertilizer.utils import get_next_label, dict_to_series, pickle_save, generate_cell_dataframe, generate_mut_dataframe, dict_to_dataframe
 
 
-from seed import Seed
+# from seed import Seed
 from draw_clonal_tree import DrawClonalTree
 from utils import get_next_label, dict_to_series, pickle_save, generate_cell_dataframe, generate_mut_dataframe, dict_to_dataframe
+
+
+from dataclasses import dataclass
+import numpy as np
+# from clonal_tree import LinearTree, BranchingTree
+
+
 
 class ClonalTree:
     """
@@ -202,8 +209,10 @@ class ClonalTree:
         return outstring
 
     def get_tip_cells(self, t):
-
-        return np.concatenate([self.cell_mapping[t][k] for k in self.cell_mapping[t]])
+        if t in self.cell_mapping:
+            return np.concatenate([self.cell_mapping[t][k] for k in self.cell_mapping[t]])
+        else:
+            return np.empty(shape=0, dtype=int)
 
     def set_key(self, key):
         self.key = key
@@ -223,8 +232,8 @@ class ClonalTree:
         if node in list(self.tree.nodes()):
             cells = self.get_tip_cells(node)
             muts = self.get_tip_muts(node)
-            if len(cells) > lamb and len(muts) > tau:
-                return Seed(cells, muts, anc_muts)
+            # if len(cells) > lamb and len(muts) > tau:
+            return Seed(cells, muts, anc_muts)
 
         return None
 
@@ -244,8 +253,10 @@ class ClonalTree:
         cm, mm, ml, em = {}, {}, {}, {}
 
         for i in range(len(self.labels)):
-            cm[i] = self.cell_mapping[self.labels[i]]
-            mm[i] = self.mut_mapping[self.labels[i]]
+            if self.labels[i] in self.cell_mapping:
+                cm[i] = self.cell_mapping[self.labels[i]]
+            if self.labels[i] in self.mut_mapping:
+                mm[i] = self.mut_mapping[self.labels[i]]
             if self.labels[i] in self.mut_loss_mapping:
                 ml[i] = self.mut_loss_mapping[self.labels[i]]
             if self.labels[i] in self.event_mapping:
@@ -446,7 +457,10 @@ class ClonalTree:
         dt.saveDOT(fname)
 
     def get_tip_muts(self, t):
-        return self.mut_mapping[t]
+        if t in self.mut_mapping:
+            return self.mut_mapping[t]
+        return np.empty(shape=0, dtype=int)
+
 
     def get_leaves(self):
         leaves = [l for l in list(self.tree.nodes())
@@ -964,13 +978,14 @@ class LinearTree(ClonalTree):
         return True
         #return len(self.get_tip_cells(0)) > lamb and len(self.mut_mapping[0]) > tau and len(self.get_tip_cells(1)) > lamb #and len(self.get_tip_muts(1)) > tau
 
-    def get_seeds(self, lamb, tau, ancestral_muts):
+    def get_seeds(self,  ancestral_muts):
         seed_list = []
 
         cellsB = self.get_tip_cells(1)
         mutsB = self.get_tip_muts(1)
         # if len(cellsB) > lamb and len(mutsB) > tau:
         anc_muts = np.sort(np.union1d(ancestral_muts, self.mut_mapping[0]))
+        anc_muts = np.empty(shape=0, dtype=int)
         seed_list.append(Seed(cellsB, mutsB, anc_muts))
 
         return seed_list
@@ -1004,7 +1019,7 @@ class BranchingTree(ClonalTree):
 
         muts_valid =len(self.mut_mapping[1]) > tau or len(self.mut_mapping[2]) > tau 
         muts_valid = True
-        cell_valid = True
+        cells_valid = True
         return muts_valid and cells_valid
 
         # if (len(self.get_tip_cells(1)) > lamb and len(self.mut_mapping[1]) > tau) or (len(self.get_tip_cells(2)) > lamb and len(self.mut_mapping[2]) > tau):
@@ -1012,17 +1027,19 @@ class BranchingTree(ClonalTree):
         # else:
         #     return False
 
-    def get_seeds(self, lamb, tau, ancestral_muts):
+    def get_seeds(self, ancestral_muts):
 
         seed_list = []
         leaves = [1, 2]
         ancestral_muts = np.sort(np.union1d(
             ancestral_muts, self.mut_mapping[0]))
+        ancestral_muts = np.empty(shape=0, dtype=int)
         for l in leaves:
 
             cells = self.get_tip_cells(l)
             muts = self.mut_mapping[l]
             # if len(cells) > lamb and len(muts) > tau:
+          
             seed_list.append(Seed(cells, muts, ancestral_muts))
 
         return seed_list
@@ -1043,6 +1060,68 @@ class IdentityTree(ClonalTree):
     def is_valid(self, lamb, tau):
         return True
 
-    def get_seeds(self, lamb, tau, ancestral_muts=None):
+    def get_seeds(self,  ancestral_muts=None):
         return []
 
+
+
+@dataclass
+class Seed:
+
+    cells: np.array
+    muts: np.array
+    ancestral_muts: np.array = np.empty(shape=0, dtype=int)
+    key: int = None
+    linear_tree: LinearTree = None
+    branching_tree :BranchingTree = None
+    def __post_init__(self):
+        self.tree_list = []
+     
+    def __str__(self):
+
+        outstring = f"Cells: {len(self.cells)} Muts: {len(self.muts)}" # Ancestral Muts: {len(self.ancestral_muts)} "
+        return outstring
+
+    def __eq__(self, object):
+
+        # ancestral_muts_same = np.array_equal(
+        #     np.sort(self.ancestral_muts), np.sort(object.ancestral_muts))
+
+        if type(object) is type(self):
+            return np.array_equal(self.cells, object.cells) \
+                and np.array_equal(self.muts, object.muts) #\
+        #         and ancestral_muts_same
+        else:
+            return False
+
+    def set_key(self, key):
+        self.key = key
+    
+    def get_key(self):
+        return self.key
+
+    def strip(self, var):
+        var_counts_by_snv= var[np.ix_(self.cells, self.muts)].sum(axis=0)
+        bad_snvs = self.muts[var_counts_by_snv==0]
+        self.muts = np.setdiff1d(self.muts, bad_snvs)
+        
+        var_counts_by_cells = var[np.ix_(self.cells,self.muts)].sum(axis=1)
+        bad_cells = self.cells[var_counts_by_cells ==0]
+        self.cells = np.setdiff1d(self.cells, bad_cells)
+
+    def count_obs(self,total):
+        nobs =np.count_nonzero(total[np.ix_(self.cells,self.muts)])
+        return nobs
+    
+    def set_linear(self, ct):
+        self.tree_list.append(ct)
+        self.linear_tree = ct
+
+    def has_linear(self):
+        return self.linear_tree is not None 
+
+    def has_branching(self):
+        return self.branching_tree is not None 
+    def set_branching(self,ct):
+        self.tree_list.append(ct)
+        self.branching_tree = ct

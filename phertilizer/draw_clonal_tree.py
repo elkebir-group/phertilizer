@@ -55,7 +55,7 @@ def bins_to_string(bins, bin2chrom=None):
         return ', '.join(s)
 
 class DrawClonalTree:
-    def __init__(self, clonal_tree, bin2chrom=None, include_likelihood=False):
+    def __init__(self, clonal_tree, bin2chrom=None, include_likelihood=True):
         self.T = clonal_tree.tree
         self.nodes = tuple(self.T.nodes())
         self.cm = clonal_tree.cell_mapping
@@ -63,11 +63,11 @@ class DrawClonalTree:
         self.ml = clonal_tree.mut_loss_mapping
         self.em = clonal_tree.event_mapping
 
-        if include_likelihood:
-
+        try:
             self.node_likelihood = clonal_tree.node_likelihood
-        else:
+        except:
             self.node_likelihood = {}
+            
         self.likelihood, var_like, bin_like = clonal_tree.get_loglikelihood()
         self.bin2chrom = bin2chrom
 

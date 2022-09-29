@@ -12,6 +12,7 @@ class Params:
     radius : float = 0.5
     npass : int = 1
     minobs: int = 4113
+    seed: int = 1026
     use_copy_kernel: bool = False
     def __post_init__(self):
         if self.radius > 1:

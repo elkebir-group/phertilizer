@@ -8,6 +8,7 @@ from scipy.spatial.distance import pdist, squareform
 from clonal_tree import LinearTree
 from clonal_tree_list import ClonalTreeList
 from utils import normalizedMinCut, check_stats, snv_kernel_width, cnv_kernel_width, impute_mut_features, check_obs
+from scipy.stats import multivariate_normal
 
 
 # from phertilizer.clonal_tree import LinearTree
@@ -110,10 +111,12 @@ class Linear_split():
 
         self.cna_genotype_mode = cna_genotype_mode
         self.rng = rng
+        self.np_rng= np.random.RandomState(params.seed)
         self.like0 = data.like0
         self.like1_dict = data.like1_dict
         self.like1 = data.like1_marg
 
+        self.data = data
         self.var = data.var
         self.total = data.total
 
@@ -125,6 +128,7 @@ class Linear_split():
 
         self.radius = params.radius
         self.npass = params.npass
+        self.minobs = params.minobs
 
         self.use_copy_kernel = params.use_copy_kernel
     
@@ -314,6 +318,8 @@ class Linear_split():
             d_mat = squareform(pdist(tmb, metric="euclidean"))
 
             kernel = np.exp(-1*d_mat/snv_kernel_width(d_mat))
+            # kw = snv_kernel_width(d_mat)
+            # kernel = np.exp(-1*np.power(d_mat/kw,2))
             mb_mut_count_series = pd.Series(
                 mb_mut_count.reshape(-1), index=cells)
 
@@ -323,6 +329,7 @@ class Linear_split():
             if self.use_copy_kernel:
 
                 copy_kernel = np.exp(-1*c_mat/cnv_kernel_width(c_mat))
+                # copy_kernel = np.exp(-1*np.power(c_mat/cnv_kernel_width(c_mat),2))
                 copy_kernel[c_mat > r] = 0
                 kernel = np.multiply(kernel, copy_kernel)
 
@@ -365,7 +372,7 @@ class Linear_split():
             print("Terminating cell clustering due to NANs in affinity matrix")
             return cells, np.empty(shape=0, dtype=int), None
 
-        clusters, y_vals, labels, stats = normalizedMinCut(W, cells)
+        clusters, y_vals, labels, stats = normalizedMinCut(W, cells, self.np_rng)
 
         cells1, cells2 = clusters
 
@@ -382,7 +389,8 @@ class Linear_split():
             cellsA, cellsB = cells2, cells1
             logging.info(
                 f"Mb Count a: {norm_mut_count2} Mb Count b: {norm_mut_count1}")
-
+        stats["norm_count_diff"] = abs(norm_mut_count1- norm_mut_count2)
+        stats["ca_mb_count"] = min(norm_mut_count1, norm_mut_count2)
         return cellsA, cellsB, stats
 
     def assign_cna_events(self, cellsA, cellsB):
@@ -416,7 +424,7 @@ class Linear_split():
 
         return eA, eB
 
-    def run(self, cells, muts, p):
+    def run(self, cells, muts, p, parent_norm = np.NINF):
         '''     a helper method to add candidate linear tree for each restart
 
 
@@ -432,56 +440,70 @@ class Linear_split():
 
         '''
 
+        if check_obs(cells, muts, self.total) < self.minobs:
+            print("not enough observations, terminating")
+            return 
+        
+        internal_tree_list = ClonalTreeList()
+        norm_list = []
 
-        if check_obs(cells, muts, self.total) >= 4113:
-            internal_tree_list = ClonalTreeList()
-            norm_list = []
+        for s in range(self.starts):
 
-            for s in range(self.starts):
+          
 
-                mutsA, mutsB = self.random_weighted_init_array(cells, muts, p)
-                mutsA, mutsB = self.random_init_array( muts, p)
-                oldCellsA = cells
-                for j in range(self.iterations):
-                    cellsA, cellsB, stats = self.cluster_cells(cells, mutsB)
-                    if len(cellsB) == 0 or np.array_equal(np.sort(cellsA), np.sort(oldCellsA)):
-                        break
-                    else:
-                        oldCellsA = cellsA
+            mutsA, mutsB = self.random_weighted_init_array(cells, muts, p)
+            # mutsA, mutsB = self.random_init_array( muts, p)
+            oldCellsA = cells
+            for j in range(self.iterations):
+                cellsA, cellsB, stats = self.cluster_cells(cells, mutsB)
+                if len(cellsB) == 0 or np.array_equal(np.sort(cellsA), np.sort(oldCellsA)):
+                    break
+                else:
+                    oldCellsA = cellsA
 
-                    eA, eB = self.assign_cna_events(cellsA, cellsB)
+                eA, eB = self.assign_cna_events(cellsA, cellsB)
 
-                    mutsA, mutsB = self.mut_assignment(cellsA, muts)
+                mutsA, mutsB = self.mut_assignment(cellsA, muts)
 
-                if len(cellsA) >0 and len(cellsB) > 0:
-                # if len(cellsA) > self.lamb and len(mutsA) > self.tau and len(cellsB) > 5:
-                    if check_stats(stats, self.jump_percentage, self.spectral_gap, self.npass):
+            print(f"number of iterations: {j}")
+            if len(cellsA) >0 and len(cellsB) > 0:
+            # if len(cellsA) > self.lamb and len(mutsA) > self.tau and len(cellsB) > 5:
+                if stats['norm_count_diff'] > 2:#   and stats['ca_mb_count'] < 2:
+                #check_stats(stats, self.jump_percentage, self.spectral_gap, self.npass) and :
 
-                        cellsB_tree = np.setdiff1d(self.cells, cellsA)
-                        eA, eB = self.assign_cna_events(cellsA, cellsB_tree)
+                    cellsB_tree = np.setdiff1d(self.cells, cellsA)
+                    # eA, eB = self.assign_cna_events(cellsA, cellsB_tree)
 
-                        mutsA, mutsB_tree = self.mut_assignment(cellsA, muts)
+                    # mutsA, mutsB_tree = self.mut_assignment(cellsA, self.muts)
+                    mutsB_tree = np.setdiff1d(self.muts, mutsA)
+                    lt = LinearTree(cellsA, cellsB_tree,
+                                    mutsA, mutsB_tree, eA, eB)
+                    # print(lt)
+                    internal_tree_list.insert(lt)
 
-                        lt = LinearTree(cellsA, cellsB_tree,
-                                        mutsA, mutsB_tree, eA, eB)
-                        internal_tree_list.insert(lt)
+                    norm_list.append(self.compute_norm_likelihood(
+                        cellsA, cellsB, mutsA, mutsB_tree))
+            # self.use_copy_kernel = not self.use_copy_kernel
+        best_tree = self.best_norm_like(internal_tree_list, norm_list)
+        print(best_tree)
+        if best_tree is not None:
 
-                        norm_list.append(self.compute_norm_likelihood(
-                            cellsA, cellsB, mutsA, mutsB_tree))
-
-            best_tree = self.best_norm_like(internal_tree_list, norm_list)
-            if best_tree is not None:
-
+       
+            like_norm = self.compute_norm_likelihood(best_tree.get_tip_cells(0),
+                                                        best_tree.get_tip_cells(
+                                                            1),
+                                                        best_tree.get_tip_muts(
+                                                            0),
+                                                        best_tree.get_tip_muts(1))
+       
+            print(f"like norm {like_norm}: parent norm {parent_norm}")
+            if like_norm > parent_norm:
                 self.cand_splits.insert(best_tree)
-                like_norm = self.compute_norm_likelihood(best_tree.get_tip_cells(0),
-                                                         best_tree.get_tip_cells(
-                                                             1),
-                                                         best_tree.get_tip_muts(
-                                                             0),
-                                                         best_tree.get_tip_muts(1))
-
+                # cb =np.setdiff1d(cells, best_tree.get_tip_cells(0))
                 self.norm_like_list.append(like_norm)
-                self.run(best_tree.get_tip_cells(0), muts, p)
+       
+                self.run(best_tree.get_tip_cells(0), best_tree.get_tip_muts(0), p, parent_norm=like_norm)
+                # self.run(cb, self.muts, p, parent_norm= like_norm)
 
     @staticmethod
     def best_norm_like(tree_list, norm_like_list):
@@ -520,15 +542,73 @@ class Linear_split():
 
         '''
 
-
         total_like = self.like0[np.ix_(cellsA, mutsB)].sum(
         ) + self.like1[np.ix_(self.cells, mutsA)].sum()
         total = np.count_nonzero(self.like0[np.ix_(
             cellsA, mutsB)]) + np.count_nonzero(self.like1[np.ix_(self.cells, mutsA)])
-
+        # total = len(cellsA)*len(self.muts) + len(cellsB)*len(mutsA)
         norm_like = total_like/total
 
         return norm_like
+    
+    # def compute_norm_likelihood(self,cellsA, cellsB, mutsA, mutsB):
+    #     var_like = self.compute_norm_var_likelihood(cellsA, cellsB, mutsA, mutsB)
+    #     rd_like =self.read_depth_likelihood_by_node(cellsA, cellsB)
+    #     total_like = var_like + rd_like
+    #     like = total_like.sum()
+    #     return like
+    def compute_norm_var_likelihood(self, cellsA, cellsB, mutsA, mutsB):
+        '''    calculated the normalized variant log likelihood for the 
+                given partition
+
+
+        Parameters
+        ----------
+        cellsA : np.array
+            the cell indices in the first cluster
+        cellsB : np.array
+            the cell indices in the second cluster
+        mutsA : np.array
+            the SNV indices in the first cluster
+        mutsB : np.array
+            the SNV indices in the second cluster
+
+
+        Returns
+        -------
+        norm_like : float
+           the normalized likelihood of the partitions, excluding the cellsB/mutsB 
+           partition
+
+
+        '''
+        ca_like = self.like0[np.ix_(cellsA, mutsB)].sum(axis=1) + self.like1[np.ix_(cellsA, mutsA)].sum(axis=1)
+        total = np.count_nonzero(self.like0[np.ix_(cellsA, self.muts)],axis=1)
+        ca_like = ca_like/total
+        ca_like_series = pd.Series(ca_like, cellsA)
+
+        cb_like =self.like1[np.ix_(cellsB, mutsA)].sum(axis=1)
+        cb_total =np.count_nonzero(self.like0[np.ix_(cellsB, mutsA)], axis=1)
+
+        cb_like_series = pd.Series(cb_like/cb_total, index=cellsB)
+
+        var_like =pd.concat([ca_like_series, cb_like_series])
+
+        return var_like
+
+    def read_depth_likelihood_by_node(self, cellsA, cellsB):
+        likes = []
+        for cells in [cellsA, cellsB]:
+            cluster_data = self.data.read_depth[cells,:]
+            bin_means = cluster_data.mean(axis=0)
+            bin_variance = np.diag(np.var(cluster_data, axis=0))
+            mv_normal = multivariate_normal(bin_means, bin_variance,allow_singular=True)
+            cell_likelihood =mv_normal.logpdf(cluster_data)
+            cell_like_series = pd.Series(cell_likelihood, index=cells)
+            likes.append(cell_like_series)
+        cell_like_series = pd.concat(likes)
+
+        return cell_like_series
 
     def sprout(self):
         """ main flow control to obtain the maximum likelihood linear tree
@@ -567,9 +647,11 @@ class Linear_split():
         self.cand_splits = ClonalTreeList()
 
         self.run(self.cells, self.muts, p=0.5)
+        # if self.cand_splits.has_trees():
+        #     best_tree, _ = self.cand_splits.find_best_tree(self.data)
 
         if self.cand_splits.size() == 0:
-            return None
+            return self.cand_splits, None
 
         best_tree_index = np.argmax(np.array(self.norm_like_list))
 
@@ -579,4 +661,5 @@ class Linear_split():
         # mutsA =  best_tree_like.mut_mapping[0]
         # best_tree_like.mut_mapping[0] = np.union1d(bad_snvs, mutsA)
 
-        return best_tree_like
+        # return best_tree_like
+        return self.cand_splits, best_tree_like

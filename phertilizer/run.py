@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
 import argparse
-from copyreg import pickle
 import sys
 import pandas as pd
+import numpy as np
 
 from phertilizer import Phertilizer
 from utils import pickle_save
@@ -66,32 +66,46 @@ def main(args):
     else:
         min_cell = args.min_cells
         min_snvs = args.min_snvs
-
-    grow_tree, pre_process_list, loglikelihood = ph.phertilize(
-        min_cell=min_cell,
-        min_snvs=min_snvs,
-        max_iterations=args.iterations,
-        starts=args.starts,
-        seed=args.seed,
-        radius=args.radius,
-        npass=args.npass,
-        gamma= 0.95,
-        d = args.min_obs,
-        use_copy_kernel = args.use_copy_kernel,
-        post_process = args.post_process
-        )
     
+    seed  = args.seed
+    best_like = np.NINF
+    best_tree, best_list, best_loglikes = None, None, None
+    for i in range(args.runs):
+        print(f"Run {i+1}")
+        grow_tree, pre_process_list, loglikelihood = ph.phertilize(
+            min_cell=min_cell,
+            min_snvs=min_snvs,
+            max_iterations=args.iterations,
+            starts=args.starts,
+            seed=100*seed + i,
+            radius=args.radius,
+            npass=args.npass,
+            gamma= 0.95,
+            d = args.min_obs,
+            use_copy_kernel = args.use_copy_kernel,
+            post_process = args.post_process
+            )
+        
+        if grow_tree.norm_loglikelihood  > best_like:
+            best_like = grow_tree.norm_loglikelihood
+            best_tree, best_list, best_loglikes = grow_tree, pre_process_list, loglikelihood
+        print(f"Run {i+1} complete")
+        print(best_tree)
+        print(f"Normalize Log Likelihood: {best_like}")
 
 
 
+    cell_lookup, mut_lookup = ph.get_id_mappings()
     if args.data is not None:
         pickle_save(ph.data, args.data )
 
 
 
-    cell_lookup, mut_lookup = ph.get_id_mappings()
-    print("\nPhertilizer Tree....")
-    print(grow_tree)
+ 
+    print("\nPhertilizer Tree")
+    print(f"Normalized log likelihood: {best_like}")
+    print(best_tree)
+
 
     
   
@@ -99,23 +113,23 @@ def main(args):
 
 
     if args.tree_list is not None:
-        pickle_save(pre_process_list, args.tree_list)
+        pickle_save(best_list, args.tree_list)
 
     if args.tree is not None:
         if '.dot' in args.tree:
-            grow_tree.tree_dot(args.tree)
+            best_tree.tree_dot(args.tree)
         else:
-            grow_tree.tree_png(args.tree)
+            best_tree.tree_png(args.tree)
 
     if args.likelihood is not None:
         # with open(args.likelihood,'w+') as f:
-            loglikelihood.to_csv(args.likelihood)
+            best_loglikes.to_csv(args.likelihood)
             
     if args.tree_pickle is not None:
-        pickle_save(grow_tree, args.tree_pickle)
+        pickle_save(best_tree, args.tree_pickle)
 
     cell_lookup, mut_lookup = ph.get_id_mappings()
-    pcell, pmut, _, event_df = grow_tree.generate_results(
+    pcell, pmut, _, event_df = best_tree.generate_results(
         cell_lookup, mut_lookup)
 
     if args.cell_lookup is not None:
@@ -138,10 +152,10 @@ def main(args):
     #     event_df.to_csv(args.pred_event)
 
     if args.tree_path is not None:
-        pre_process_list.save_the_trees(args.tree_path)
+        best_list.save_the_trees(args.tree_path)
     
     if args.tree_text is not None:
-        grow_tree.save_text(args.tree_text)
+        best_tree.save_text(args.tree_text)
 
     if args.params is not None:
         pickle_save(ph.params, args.params)
@@ -186,6 +200,8 @@ def get_options():
                         help="output file for mutation clusters")
     parser.add_argument("-n", "--pred_cell",
                         help="output file cell clusters")
+    parser.add_argument("--runs", type=int, default=1,
+                        help="number of Phertilizer runs")
     # parser.add_argument("-e", "--pred_event",
     #                     help="output file cna genotypes")
     parser.add_argument("-g", "--gamma", type=float, default=0.95,
@@ -218,30 +234,40 @@ def get_options():
                         help="filename where pickled data should be saved for post-processing")
     parser.add_argument("--params", type=str,
                         help="filename where pickled parameters should be save")      
-    # args = parser.parse_args(None if sys.argv[1:] else ['-h'])
+    args = parser.parse_args(None if sys.argv[1:] else ['-h'])
 
-#     inpath = "/scratch/data/leah/phertilizer/simulations/phertilizer/phert_input/s13_n1500_m2500_c7_p0.01_cna1_l0_loh0_dcl2_dsnv2_dcnv2"
+#/scratch/data/leah/phertilizer/simulations/phertilizer/recomb_rd/clones7_l0_loh0_p0.01_ck1/s12_n1500_m5000
+#     inpath = "/scratch/data/leah/phertilizer/simulations/phertilizer/phert_input/s13_n5000_m5000_c5_p0.01_cna1_l0_loh0_dcl2_dsnv2_dcnv2"
 #     outpath = "/scratch/data/leah/phertilizer/simulations/phertilizer/tst_snv"
+    
 #     args = parser.parse_args([ 
 #         "-f", f"{inpath}/dataframe_mod.tsv",
 #         "--bin_count_data", f"{inpath}/reads_per_bin_relabeled.csv",
-#         # "--bin_count_normal", "/scratch/data/leah/phertilizer/simulations/normal_samples/normal_cells_p0.01.tsv",
-#         # "--snv_bin_mapping",f"{inpath}/snv_bin_reformatted.csv",
-#         "--min_frac", "0.1",
-#         "-d", "13",
+#         # "-f", f"{outpath}/dataframe.tsv",
+#         # "--bin_count_dat", f"{outpath}/bin_counts.csv",
+#         "-d", "16",
 #         "-c", "5",
-#         "-j", "10",
+#         "-j", "20",
 #         "-s", "5",
+#         "--runs", "1",
 #         "-a", "0.001",
-#         "--neutral_mean", "1.0",
-#         "--neutral_eps", "0.15",
+#         "--radius", "0.975",
+#         "--gamma", "0.95",
+#         "--min_obs", "7",
+#         "--post_process",
 #         "-m", f"{outpath}/pred_mut.csv",
 #         "-n", f"{outpath}/pred_cell.csv",
-#         "-e", f"{outpath}/pred_event.csv",
 #         "--tree", f"{outpath}/best_tree.png",
-#         "--tree_path", f"{outpath}",
+#         "--tree_text", f"{outpath}/best_tree.txt",
 #         "--tree_pickle", f"{outpath}/best_tree.pickle",
-#         "--tree_list", f"{outpath}/tree_list.pickle",
+#         # "--tree_list", f"{outpath}/tree_list.pickle",
+#         "--likelihood", f"{outpath}/likelihood.txt",
+#         "--cell_lookup", f"{outpath}/cell_lookup.csv",
+#         "--mut_lookup", f"{outpath}/mut_lookup.csv",
+#         "--npass", "2",
+#         "--mode", "rd",
+#      "--use_copy_kernel",
+#      "--post_process"
 
 
 # ])
@@ -301,7 +327,8 @@ def get_options():
     #     "-d", "3",
     #     "-c", "5",
     #     "-j", "10",
-    #     "-s", "3",
+    #     "-s", "30",
+    #     "--runs", "3",
     #     "-a", "0.001",
     #     "--radius", "0.9",
     #     "--gamma", "0.95",

@@ -5,7 +5,7 @@ from time import time
 from functools import wraps
 import pickle
 from scipy.linalg import eigh
-from sklearn.cluster import AgglomerativeClustering
+from sklearn.cluster import AgglomerativeClustering, spectral_clustering
 import networkx as nx
 from scipy.special import comb 
 
@@ -73,13 +73,13 @@ def find_muts_with_no_reads( mat, cells, muts):
 
 
 def snv_kernel_width(dmat):
-    kw = 0.25*(np.max(dmat)-np.min(dmat))
-  
+    # kw = 0.25*(np.max(dmat)-np.min(dmat))
+    kw = 0.2*(np.max(dmat)-np.min(dmat))
     return kw
 
 def cnv_kernel_width(dmat):
-
-    kw = 0.25*(np.max(dmat)-np.min(dmat))
+    kw = 0.2*(np.max(dmat)-np.min(dmat))
+    # kw = 0.25*(np.max(dmat)-np.min(dmat))
 
     return kw
 
@@ -128,50 +128,71 @@ def impute_mut_features( c_mat, mut_features, cells):
 
     return mut_features
 
-def normalizedMinCut( W, index):
+def normalizedMinCut( W, index, random_state=None):
 
     stats = {}
     if W.shape[0] ==1 or np.any(np.isnan(W)):
         return (index, np.empty(shape=0)), None, None, stats
 
-
-    D = np.diag(W.sum(axis=1))
-    eig_vals, vecs = eigh(D-W, D)
-    y_vals = Series(vecs[:,1], index=index)
-    # y_vals.to_csv("/scratch/data/leah/phertilizer/DLP/clones17/vec_vals.csv", index=False)
-    v= np.sort(vecs[:,1])
-    
-    #calculate statistics on clustering 
-    
-    jump_percentage = np.max(np.abs(np.diff(v))) / (np.max(v) - np.min(v))
-  
-    #calculate the spectral gap and find the max 
-    first_gap = eig_vals[1] - eig_vals[0]
-    
-    spectral_k = np.argmax(np.diff(eig_vals)) + 1
-    largest_gap = np.max(np.diff(eig_vals))
-    
-    # print(f"Jump Percentage: {jump_percentage} First Eig Val: {eig_vals[0]} 
-    # First Gap: {first_gap} Largest Gap: {largest_gap} Number of Clusters:{spectral_k}")
-    
-    stats["jump_perc"] = jump_percentage
-    stats["first_gap"] = first_gap
-    stats["largest_gap"] = largest_gap
-    stats["spectral_num_k"] = spectral_k
-
-  
-    labels = AgglomerativeClustering(n_clusters=2, affinity="euclidean", linkage="ward").fit_predict(vecs[:,1].reshape(-1,1))
+    labels = spectral_clustering(W, n_clusters=2, random_state=random_state, 
+                                assign_labels="cluster_qr",
+                                eigen_solver='lobpcg')
     cluster1 = index[labels== 0]
     cluster2 = index[labels==1]
+ 
+    
+    stats["jump_perc"] = 0.08
+    stats["first_gap"] = 0.03
+    stats["largest_gap"] = 0.5
+    stats["spectral_num_k"] = 2
+
+
+    return (cluster1, cluster2), None,  labels, stats
+
+# def normalizedMinCut( W, index):
+
+#     stats = {}
+#     if W.shape[0] ==1 or np.any(np.isnan(W)):
+#         return (index, np.empty(shape=0)), None, None, stats
+
+
+#     D = np.diag(W.sum(axis=1))
+#     eig_vals, vecs = eigh(D-W, D)
+#     y_vals = Series(vecs[:,1], index=index)
+#     # y_vals.to_csv("/scratch/data/leah/phertilizer/DLP/clones17/vec_vals.csv", index=False)
+#     v= np.sort(vecs[:,1])
+    
+#     #calculate statistics on clustering 
+    
+#     jump_percentage = np.max(np.abs(np.diff(v))) / (np.max(v) - np.min(v))
   
-    if len(cluster1) < 10 or len(cluster2) < 10:
-        cluster1 = y_vals[y_vals > 0].index.to_numpy()
-        cluster2 = y_vals[y_vals <= 0].index.to_numpy()
+#     #calculate the spectral gap and find the max 
+#     first_gap = eig_vals[1] - eig_vals[0]
+    
+#     spectral_k = np.argmax(np.diff(eig_vals)) + 1
+#     largest_gap = np.max(np.diff(eig_vals))
+    
+#     # print(f"Jump Percentage: {jump_percentage} First Eig Val: {eig_vals[0]} 
+#     # First Gap: {first_gap} Largest Gap: {largest_gap} Number of Clusters:{spectral_k}")
+    
+#     stats["jump_perc"] = jump_percentage
+#     stats["first_gap"] = first_gap
+#     stats["largest_gap"] = largest_gap
+#     stats["spectral_num_k"] = spectral_k
+
+  
+#     labels = AgglomerativeClustering(n_clusters=2, affinity="euclidean", linkage="ward").fit_predict(vecs[:,1].reshape(-1,1))
+#     cluster1 = index[labels== 0]
+#     cluster2 = index[labels==1]
+  
+#     if len(cluster1) < 10 or len(cluster2) < 10:
+#         cluster1 = y_vals[y_vals > 0].index.to_numpy()
+#         cluster2 = y_vals[y_vals <= 0].index.to_numpy()
       
 
 
-    labels = Series(labels, index)
-    return (cluster1, cluster2), y_vals,  labels, stats
+    # labels = Series(labels, index)
+    # return (cluster1, cluster2), y_vals,  labels, stats
     
    
 

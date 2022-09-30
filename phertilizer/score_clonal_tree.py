@@ -356,50 +356,49 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # folder = "n5000_m2500"
+    # folder = "s12_n1000_m10000_c5_p0.1_cna1_l0_loh0_dcl2_dsnv2_dcnv2"
     # # seed = 13
-    # pth = "/scratch/data/leah/phertilizer/simulations/baseline/var_thresh2"
-    # gt_pth = "/scratch/data/chuanyi/phertilizer/simulations"
-    # gt_folder = 's12_n1500_m1500_c5_p0.01_cna1_l0_loh0_dcl2_dsnv2_dcnv2'
-    # infer_folder = f"{pth}/{gt_folder}"
-    # # gt_folder = "s16_n2500_m1500_c7_p0.01_cna1_l2_loh2_dcl2_dsnv2_dcnv2"
-    # # infer_folder = "simulations/phertilizer/genome_biology/clones7_l2_loh2/s16_n2500_m1500_c7_p0.01_cna1_l2_loh2_dcl2_dsnv2_dcnv2/dollo/starts5_iterations10_minfrac0.1_minloss30_kneighbors5_lreadthresh5"
-    # # # # # gt_folder = "s15_n5000_m2500_c5_p0.01_cna1_l2_loh2_dcl2_dsnv2_dcnv2"
-    # # # # # infer_folder = "not_hierarchical/s15_n5000_m2500_c5_p0.01_cna1_l2_loh2_dcl2_dsnv2_dcnv2"
+    # pth = f"/home/ec2-user/phertilizer_archive/simulation_study/phertilizer_rd/{folder}/starts16_iterations30_d7"
+    # gt_path = "/home/ec2-user/phertilizer_archive/simulation_study"
+
+    # gt_folder = "s16_n2500_m1500_c7_p0.01_cna1_l2_loh2_dcl2_dsnv2_dcnv2"
+    # infer_folder = "simulations/phertilizer/genome_biology/clones7_l2_loh2/s16_n2500_m1500_c7_p0.01_cna1_l2_loh2_dcl2_dsnv2_dcnv2/dollo/starts5_iterations10_minfrac0.1_minloss30_kneighbors5_lreadthresh5"
+    # # # # gt_folder = "s15_n5000_m2500_c5_p0.01_cna1_l2_loh2_dcl2_dsnv2_dcnv2"
+    # # # # infer_folder = "not_hierarchical/s15_n5000_m2500_c5_p0.01_cna1_l2_loh2_dcl2_dsnv2_dcnv2"
     # args = parser.parse_args([
-    #     "-c", f"/scratch/data/chuanyi/phertilizer/simulations/preprocess/{gt_folder}/cellclust_gt.csv",
-    #     "-m", f"/scratch/data/chuanyi/phertilizer/simulations/preprocess/{gt_folder}/mutclust_gt.csv",
-    #     "-j", f"/scratch/data/chuanyi/phertilizer/simulations/preprocess/{gt_folder}/mut_loss_clust_gt.csv",
-    #     "-e", f"/scratch/data/chuanyi/phertilizer/simulations/input/{gt_folder}_copy_number_profiles.csv",
-    #     "-t", f"/scratch/data/chuanyi/phertilizer/simulations/input/{gt_folder}_tree.txt",
-    #     "-M", f"{infer_folder}/sphyr_in.txt",
-    #     "-C", f"{infer_folder}/cluster-assignments.txt",
-    #     "--cell_labels",  f"{infer_folder}/sphyr_cell_labels.txt",
-    #     "--snv_labels",  f"{infer_folder}/sphyr_snv_labels.txt",
-    #     "-z", "baseline",
-    #     "-o", f"{infer_folder}/metrics_baseline.csv"
+    #     "-c", f"{gt_path}/preprocess/{folder}/cellclust_gt.csv",
+    #     "-m", f"{gt_path}/preprocess/{folder}/mutclust_gt.csv",
+    #     "-j", f"{gt_path}/preprocess/{folder}/mut_loss_clust_gt.csv",
+    #     "-e", f"{gt_path}/input/{folder}_copy_number_profiles.csv",
+    #     "-t", f"{gt_path}/input/{folder}_tree.txt",
+    #     "-M", f"{pth}/pred_mut.csv",
+    #     "-C", f"{pth}/pred_cell.csv",
+    #     "-T", f"{pth}/best_tree.pickle",
+    # #    "-z",
+    #     "-o", f"{pth}/metrics.csv"
+    # ])
 
 
-    # # # #     # phertilizer inferred
-    # #     "-C", f"/scratch/data/leah/phertilizer/{infer_folder}/pred_cell.csv",
-    # #     "-M", f"/scratch/data/leah/phertilizer/{infer_folder}/pred_mut.csv",
-    # #     "-J", f"/scratch/data/leah/phertilizer/{infer_folder}/pred_mut_loss.csv",
-    # #     "-E", f"/scratch/data/leah/phertilizer/{infer_folder}/pred_event.csv",
-    # #     "-T", f"/scratch/data/leah/phertilizer/{infer_folder}/best_tree.pickle",
-    # # # #     "--no-loss",
-    # # #     # SPhyR inferred
-    # # #     "-z", "sphyr",
-    # # #     "-C", f"{pth}/{gt_folder}/cluster-assignments.txt",
-    # # #     "-T", f"{pth}/{gt_folder}/sphyr_output.dot",
-    # # #     #     # # siclonefit inferred
-    # # # #     # "-C", f"/scratch/data/leah/phertilizer/{infer_folder}/pred_cell.csv",
-    # # # #     # "-M", f"/scratch/data/leah/phertilizer/{infer_folder}/pred_mut.csv",
-    # # # #     # "-J", f"/scratch/data/leah/phertilizer/{infer_folder}/pred_mut_loss.csv",
-    # # # #     # "-E", f"/scratch/data/leah/phertilizer/{infer_folder}/pred_event.csv",
-    # # # #     # "-T", f"/scratch/data/chuanyi/phertilizer/simulations/siclonefit_sbmclone/hierarchical/s12_n1500_m1500_c5_p0.01_cna1_l0_loh0_dcl2_dsnv2_dcnv2/samples/best/best_MAP_tree.txt",
-    # # # #     # output
-    # # # #     # "-p", f"test/{folder}/s{seed}_{folder}_c4_p0.01_h0.8_f0.001_cna0.5_l0.25_d0.0_dcl2_dsnv2_dcnv0_true_tree.png",
-    # #     "-o", "/scratch/data/leah/phertilizer/simulations/phertilizer/test.csv"
+    # # #     # phertilizer inferred
+    #     "-C", f"/scratch/data/leah/phertilizer/{infer_folder}/pred_cell.csv",
+    #     "-M", f"/scratch/data/leah/phertilizer/{infer_folder}/pred_mut.csv",
+    #     "-J", f"/scratch/data/leah/phertilizer/{infer_folder}/pred_mut_loss.csv",
+    #     "-E", f"/scratch/data/leah/phertilizer/{infer_folder}/pred_event.csv",
+    #     "-T", f"/scratch/data/leah/phertilizer/{infer_folder}/best_tree.pickle",
+    # # #     "--no-loss",
+    # #     # SPhyR inferred
+    # #     "-z", "sphyr",
+    # #     "-C", f"{pth}/{gt_folder}/cluster-assignments.txt",
+    # #     "-T", f"{pth}/{gt_folder}/sphyr_output.dot",
+    # #     #     # # siclonefit inferred
+    # # #     # "-C", f"/scratch/data/leah/phertilizer/{infer_folder}/pred_cell.csv",
+    # # #     # "-M", f"/scratch/data/leah/phertilizer/{infer_folder}/pred_mut.csv",
+    # # #     # "-J", f"/scratch/data/leah/phertilizer/{infer_folder}/pred_mut_loss.csv",
+    # # #     # "-E", f"/scratch/data/leah/phertilizer/{infer_folder}/pred_event.csv",
+    # # #     # "-T", f"/scratch/data/chuanyi/phertilizer/simulations/siclonefit_sbmclone/hierarchical/s12_n1500_m1500_c5_p0.01_cna1_l0_loh0_dcl2_dsnv2_dcnv2/samples/best/best_MAP_tree.txt",
+    # # #     # output
+    # # #     # "-p", f"test/{folder}/s{seed}_{folder}_c4_p0.01_h0.8_f0.001_cna0.5_l0.25_d0.0_dcl2_dsnv2_dcnv0_true_tree.png",
+    #     "-o", "/scratch/data/leah/phertilizer/simulations/phertilizer/test.csv"
     # ])
     
     main(args)

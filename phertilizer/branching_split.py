@@ -451,6 +451,8 @@ class Branching_split():
 
         # if (len(cellsA) > self.lamb and len(cellsB) > 1) or (len(cellsB) > self.lamb and len(cellsA) > 1):
         if len(cellsA) > 0 and len(cellsB) > 0:
+            if  stats['min_avg_ma'] >= 0.05 or stats['max_avg_ma'] <= 0.15:
+                print("here")
             # if check_stats(stats, self.jump_percentage, self.spectral_gap, self.npass):
             # if stats['abs_avg_ma_diff'] > 2:
                 cand_tree = BranchingTree(

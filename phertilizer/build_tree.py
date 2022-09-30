@@ -325,8 +325,8 @@ def main(args):
     # print(f"clustered: {len(clustered)}")
     # incomparable = clonal_tree.get_incomparable_pairs()
     # print(f"incomparable: {len(incomparable)}")
-    clonal_tree.tree_png(args.png, "/scratch/data/chuanyi/phertilizer/simulations/phert_results/chrom_map.csv")
-    
+    # clonal_tree.tree_png(args.png, "/scratch/data/chuanyi/phertilizer/simulations/phert_results/chrom_map.csv")
+    clonal_tree.tree_png(args.png)
     
 #     # data = pickle_load(args.data)
 #     # if args.likelihood is not None:

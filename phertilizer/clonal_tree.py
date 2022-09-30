@@ -322,7 +322,7 @@ class ClonalTree:
             if node in self.mut_loss_mapping:
                 present_muts = np.setdiff1d(
                     present_muts, self.mut_loss_mapping[node])
-            y[present_muts] = 1
+            y[present_muts.astype(int)] = 1
             y_dict[node] = y
 
         return y_dict

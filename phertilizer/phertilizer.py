@@ -327,18 +327,18 @@ class Phertilizer:
         #              umap_spread = 1,
         #              umap_n_neighbors = 40,
             if True:
-                embedding = pickle_load("embedding.pickle")
+                # embedding = pickle_load("embedding.pickle")
                 # import phate
                 # phate_op = phate.PHATE()
                 # embedding= phate_op.fit_transform(bin_count_data)
-                # reducer = umap.UMAP(n_neighbors=40,
-                #                     min_dist=0,
-                #                     n_components=2,
-                #                     spread=1,
-                #                     metric="manhattan",
-                #                     random_state=55)
-                # embedding = reducer.fit_transform(bin_count_data)
-                pickle_save(embedding, "embedding.pickle")
+                reducer = umap.UMAP(n_neighbors=40,
+                                    min_dist=0,
+                                    n_components=2,
+                                    spread=1,
+                                    metric="manhattan",
+                                    random_state=55)
+                embedding = reducer.fit_transform(bin_count_data)
+                # pickle_save(embedding, "embedding.pickle")
 
                 # copy_distance = squareform(pdist(bin_count_data, metric="euclidean"))
                 copy_distance = squareform(pdist(embedding, metric="euclidean"))
@@ -347,7 +347,7 @@ class Phertilizer:
                                 embedding[:, 1])
                 plt.gca().set_aspect('equal', 'datalim')
                 plt.title('UMAP projection of Read Depth', fontsize=24)
-                plt.savefig("umap.png")
+                # plt.savefig("umap.png")
                 
                 # emb_dat = np.hstack([cells, embedding])
                 # df = pd.DataFrame(emb_dat, columns=["cell", "V1", "V2"])

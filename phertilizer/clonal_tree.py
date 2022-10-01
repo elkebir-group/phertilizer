@@ -640,7 +640,7 @@ class ClonalTree:
 
     def reassign_snv(self, s, c_dict, data):
         clust = self.get_snv_cluster(s)
-        print
+        
         
         like0 = data.like0[:,s]
         like1 = data.like1_marg[:,s]

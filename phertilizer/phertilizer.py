@@ -338,7 +338,7 @@ class Phertilizer:
                                     metric="manhattan",
                                     random_state=55)
                 embedding = reducer.fit_transform(bin_count_data)
-                # pickle_save(embedding, "embedding.pickle")
+                pickle_save(embedding, "embedding.pickle")
 
                 # copy_distance = squareform(pdist(bin_count_data, metric="euclidean"))
                 copy_distance = squareform(pdist(embedding, metric="euclidean"))
@@ -571,7 +571,7 @@ class Phertilizer:
             curr_seed = seed_list.pop()
             curr_seed.set_key(key)
             print(curr_seed)
-            if len(curr_seed.cells)==3540 or len(curr_seed.cells)==3519:
+            if len(curr_seed.cells)==812 or len(curr_seed.cells)==8016:
                 print("here")
             self.mapping_list[key] = []
             
@@ -579,12 +579,12 @@ class Phertilizer:
          
             if curr_seed.has_linear():
                 sprout_list = [self.sprout_branching] 
-                print(curr_seed.linear_tree)
+                # print(curr_seed.linear_tree)
                 self.mapping_list[key].append(curr_seed.linear_tree)
 
             elif curr_seed.has_branching():
                 sprout_list = [self.sprout_linear]
-                print(curr_seed.branching_tree)
+                # print(curr_seed.branching_tree)
                 self.mapping_list[key].append(curr_seed.branching_tree)
             
             else:
@@ -780,8 +780,8 @@ class Phertilizer:
         if best_tree is not None:
             seed_list =best_tree.get_seeds(ancestral_muts)
             seed.set_linear(best_tree)
-            print(best_tree)
-            if num_trees > 2:
+            # print(best_tree)
+            if num_trees >= 2:
                 start = num_trees -1
                 # root = tree_list.index_tree(start)
                 cA = best_tree.get_tip_cells(0)
@@ -794,7 +794,7 @@ class Phertilizer:
                 start = start - 1
                 curr_seed = seed_list[0]
             
-                while start > 0:
+                while start >= 0:
                     next_tree= tree_list.index_tree(start)
                     cA = next_tree.get_tip_cells(0)
                     mA = next_tree.get_tip_muts(0)
@@ -804,7 +804,7 @@ class Phertilizer:
             
                     next_tree.cell_mapping[0] = {0: ca_cells }
                     next_tree.mut_mapping[0] = ma_muts
-                    print(curr_seed)
+                    # print(curr_seed)
                     curr_seed.set_linear(next_tree)
                     ca_cells = cA
                     ma_muts = mA
@@ -813,7 +813,7 @@ class Phertilizer:
                     seed_list += next_seeds
                     
                     curr_seed = next_seeds[0]
-                    print(curr_seed)
+                    # print(curr_seed)
             
                     start = start -1
         else:

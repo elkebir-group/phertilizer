@@ -451,13 +451,15 @@ class Branching_split():
 
         # if (len(cellsA) > self.lamb and len(cellsB) > 1) or (len(cellsB) > self.lamb and len(cellsA) > 1):
         if len(cellsA) > 0 and len(cellsB) > 0:
-            if  stats['min_avg_ma'] >= 0.05 or stats['max_avg_ma'] <= 0.15:
-                print("here")
+            if  stats['min_avg_ma'] <= 0.05 and stats['max_avg_ma'] >= 0.15:
+             
             # if check_stats(stats, self.jump_percentage, self.spectral_gap, self.npass):
             # if stats['abs_avg_ma_diff'] > 2:
                 cand_tree = BranchingTree(
                     cellsA, cellsB, mutsA, mutsB, mutsC, eA, eB, eC=None)
                 self.cand_trees.insert(cand_tree)
+            else:
+                   print("Potentially bad split, user beware")
 
     def sprout(self):
         """ main flow control to obtain the maximum likelihood branching tree
@@ -495,7 +497,7 @@ class Branching_split():
         self.cand_trees = ClonalTreeList()
 
         for i in range(self.starts):
-
+            # self.use_copy_kernel= True
             self.run()
             self.use_copy_kernel = not self.use_copy_kernel
 

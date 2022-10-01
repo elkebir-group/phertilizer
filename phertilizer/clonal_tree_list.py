@@ -218,11 +218,11 @@ class ClonalTreeList:
         best_tree = None
         keys = []
         for i, tree in enumerate(self.stack):
-            print(tree)
+            # print(tree)
             keys.append(tree.key)
             log_likelihood = tree.compute_likelihood(data)
             log_likelihood = tree.norm_loglikelihood 
-            print(f"Log Likelihood: {log_likelihood}\n")
+            print(f"Tree: {tree.key} Log Likelihood: {log_likelihood}")
 
             log_likelihood_array[i] = log_likelihood
 

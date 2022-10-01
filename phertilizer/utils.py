@@ -149,50 +149,50 @@ def normalizedMinCut( W, index, random_state=None):
 
     return (cluster1, cluster2), None,  labels, stats
 
-# def normalizedMinCut( W, index):
+def normalizedMinCut_old( W, index, random_state=None):
 
-#     stats = {}
-#     if W.shape[0] ==1 or np.any(np.isnan(W)):
-#         return (index, np.empty(shape=0)), None, None, stats
+    stats = {}
+    if W.shape[0] ==1 or np.any(np.isnan(W)):
+        return (index, np.empty(shape=0)), None, None, stats
 
 
-#     D = np.diag(W.sum(axis=1))
-#     eig_vals, vecs = eigh(D-W, D)
-#     y_vals = Series(vecs[:,1], index=index)
-#     # y_vals.to_csv("/scratch/data/leah/phertilizer/DLP/clones17/vec_vals.csv", index=False)
-#     v= np.sort(vecs[:,1])
+    D = np.diag(W.sum(axis=1))
+    eig_vals, vecs = eigh(D-W, D)
+    y_vals = Series(vecs[:,1], index=index)
+    # y_vals.to_csv("/scratch/data/leah/phertilizer/DLP/clones17/vec_vals.csv", index=False)
+    v= np.sort(vecs[:,1])
     
-#     #calculate statistics on clustering 
+    #calculate statistics on clustering 
     
-#     jump_percentage = np.max(np.abs(np.diff(v))) / (np.max(v) - np.min(v))
+    jump_percentage = np.max(np.abs(np.diff(v))) / (np.max(v) - np.min(v))
   
-#     #calculate the spectral gap and find the max 
-#     first_gap = eig_vals[1] - eig_vals[0]
+    #calculate the spectral gap and find the max 
+    first_gap = eig_vals[1] - eig_vals[0]
     
-#     spectral_k = np.argmax(np.diff(eig_vals)) + 1
-#     largest_gap = np.max(np.diff(eig_vals))
+    spectral_k = np.argmax(np.diff(eig_vals)) + 1
+    largest_gap = np.max(np.diff(eig_vals))
     
-#     # print(f"Jump Percentage: {jump_percentage} First Eig Val: {eig_vals[0]} 
-#     # First Gap: {first_gap} Largest Gap: {largest_gap} Number of Clusters:{spectral_k}")
+    # print(f"Jump Percentage: {jump_percentage} First Eig Val: {eig_vals[0]} 
+    # First Gap: {first_gap} Largest Gap: {largest_gap} Number of Clusters:{spectral_k}")
     
-#     stats["jump_perc"] = jump_percentage
-#     stats["first_gap"] = first_gap
-#     stats["largest_gap"] = largest_gap
-#     stats["spectral_num_k"] = spectral_k
+    stats["jump_perc"] = jump_percentage
+    stats["first_gap"] = first_gap
+    stats["largest_gap"] = largest_gap
+    stats["spectral_num_k"] = spectral_k
 
   
-#     labels = AgglomerativeClustering(n_clusters=2, affinity="euclidean", linkage="ward").fit_predict(vecs[:,1].reshape(-1,1))
-#     cluster1 = index[labels== 0]
-#     cluster2 = index[labels==1]
+    labels = AgglomerativeClustering(n_clusters=2, affinity="euclidean", linkage="ward").fit_predict(vecs[:,1].reshape(-1,1))
+    cluster1 = index[labels== 0]
+    cluster2 = index[labels==1]
   
-#     if len(cluster1) < 10 or len(cluster2) < 10:
-#         cluster1 = y_vals[y_vals > 0].index.to_numpy()
-#         cluster2 = y_vals[y_vals <= 0].index.to_numpy()
+    if len(cluster1) < 10 or len(cluster2) < 10:
+        cluster1 = y_vals[y_vals > 0].index.to_numpy()
+        cluster2 = y_vals[y_vals <= 0].index.to_numpy()
       
 
 
-    # labels = Series(labels, index)
-    # return (cluster1, cluster2), y_vals,  labels, stats
+    labels = Series(labels, index)
+    return (cluster1, cluster2), y_vals,  labels, stats
     
    
 

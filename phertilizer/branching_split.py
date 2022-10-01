@@ -1,3 +1,4 @@
+from calendar import c
 import numpy as np
 from scipy.spatial.distance import pdist, squareform
 import pandas as pd
@@ -9,7 +10,7 @@ import pandas as pd
 # from phertilizer.clonal_tree_list import ClonalTreeList
 
 from clonal_tree_list import ClonalTreeList
-from utils import normalizedMinCut, check_stats, snv_kernel_width, cnv_kernel_width, impute_mut_features, check_obs
+from utils import normalizedMinCut, check_stats, normalizedMinCut_old, snv_kernel_width, cnv_kernel_width, impute_mut_features, check_obs
 from clonal_tree import BranchingTree
 from clonal_tree_list import ClonalTreeList
 
@@ -320,6 +321,8 @@ class Branching_split():
         if mut_features is not None:
             avg_muts_ma = mut_features[mut_features.index.isin(
                 cells1)].mean(axis=0)
+            avg_muts_mb  = mut_features[mut_features.index.isin(
+                cells2)].mean(axis=0)
 
             if avg_muts_ma[0] > avg_muts_ma[1]:
                 cellsA = cells1
@@ -330,8 +333,11 @@ class Branching_split():
         else:
             cellsA = cells1
             cellsB = cells2
+   
         stats['min_avg_ma'] = min( avg_muts_ma[0], avg_muts_ma[1])
         stats['max_avg_ma'] = max( avg_muts_ma[0] ,avg_muts_ma[1])
+        stats['min_avg_mb'] = min( avg_muts_mb[0], avg_muts_mb[1])
+        stats['max_avg_mb'] = max( avg_muts_mb[0] ,avg_muts_mb[1])
         return cellsA, cellsB, stats
 
     def mut_assignment(self, cellsA, cellsB):
@@ -451,16 +457,68 @@ class Branching_split():
 
         # if (len(cellsA) > self.lamb and len(cellsB) > 1) or (len(cellsB) > self.lamb and len(cellsA) > 1):
         if len(cellsA) > 0 and len(cellsB) > 0:
-            if  stats['min_avg_ma'] <= 0.05 and stats['max_avg_ma'] >= 0.15:
+            # f1, f2, f3, f4 = self.check_metrics(cellsA, cellsB, mutsA, mutsB, mutsC)
+            # if  stats['min_avg_ma'] <= 0.05 and stats['max_avg_ma'] >= 0.15 and stats['min_avg_mb'] <= 0.05 and stats['max_avg_mb'] >= 0.15:
              
             # if check_stats(stats, self.jump_percentage, self.spectral_gap, self.npass):
             # if stats['abs_avg_ma_diff'] > 2:
+            f1, f2, f3, f4, f5  = self.check_metrics(cellsA, cellsB, mutsA, mutsB, mutsC)
+            if f1 <= 0.05 and f2 <= 0.05 and f3 >= 0.15 and f4 > 0.9 and f5 >= 0.9:
                 cand_tree = BranchingTree(
                     cellsA, cellsB, mutsA, mutsB, mutsC, eA, eB, eC=None)
                 self.cand_trees.insert(cand_tree)
             else:
                    print("Potentially bad split, user beware")
+    
+    def check_metrics(self, ca,cb, ma, mb, mc):
+      
+        feat1_var = np.count_nonzero(
+            self.data.var[np.ix_(ca, mb)], axis=1)
+        feat1_total = np.count_nonzero(
+            self.data.total[np.ix_(ca, mb)], axis=1)
+        #should be low  <= 0.05
+        feat1 =np.nanmedian((feat1_var/feat1_total))
 
+        feat2_var = np.count_nonzero(
+            self.data.var[np.ix_(cb, ma)], axis=1)
+        feat2_total = np.count_nonzero(
+            self.data.total[np.ix_(cb, ma)], axis=1)
+        #should be low  <= 0.05
+        feat2 =np.nanmedian((feat1_var/feat1_total))
+
+        if len(mc) > 0:
+            mc = mc.astype(int)
+            var =  np.count_nonzero(
+                self.data.var[np.ix_(self.cells, mc)], axis=1)
+            tot = np.count_nonzero(
+                self.data.total[np.ix_(self.cells, mc)], axis=1)
+            
+        #should be high  >= 0.15
+            feat3 =np.nanmedian((var/tot))
+        else:
+            feat3 = 1
+
+
+
+        feat4_total = np.count_nonzero(
+            self.data.total[np.ix_(ca, mb)], axis=1)
+        
+        
+        #should be high ~ 0.9 percent
+        feat4 = np.sum(feat4_total > 3)/len(ca)
+
+
+        feat5_total = np.count_nonzero(
+            self.data.total[np.ix_(cb, ma)], axis=1)
+        
+        
+        #should be high ~ 0.9 percent
+        feat5 = np.sum(feat5_total > 3)/len(cb)
+
+
+    
+
+        return feat1, feat2, feat3, feat4, feat5
     def sprout(self):
         """ main flow control to obtain the maximum likelihood branching tree
         

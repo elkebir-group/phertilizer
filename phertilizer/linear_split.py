@@ -424,6 +424,37 @@ class Linear_split():
 
         return eA, eB
 
+    def check_metrics(self, ca,cb, ma, mb):
+      
+        feat1_var = np.count_nonzero(
+            self.data.var[np.ix_(ca, mb)], axis=1)
+        feat1_total = np.count_nonzero(
+            self.data.total[np.ix_(ca, mb)], axis=1)
+        #should be low  <= 0.05
+        feat1 =np.nanmedian((feat1_var/feat1_total))
+
+        feat2_var = np.count_nonzero(
+            self.data.var[np.ix_(self.cells, ma)], axis=1)
+        feat2_total = np.count_nonzero(
+            self.data.total[np.ix_(self.cells, ma)], axis=1)
+
+        #should be high ~> 0.15
+        feat2= np.nanmedian((feat2_var/feat2_total))
+
+
+        feat3_total = np.count_nonzero(
+            self.data.total[np.ix_(cb, ma)], axis=1)
+        
+        
+        #should be high ~ 0.9 percent
+        feat3 = np.sum(feat3_total > 3)/len(cb)
+
+    
+
+        return feat1, feat2, feat3
+
+
+
     def run(self, cells, muts, p, parent_norm = np.NINF):
         '''     a helper method to add candidate linear tree for each restart
 
@@ -468,7 +499,7 @@ class Linear_split():
             print(f"number of iterations: {j}")
             if len(cellsA) >0 and len(cellsB) > 0:
             # if len(cellsA) > self.lamb and len(mutsA) > self.tau and len(cellsB) > 5:
-                if stats['norm_count_diff'] > 2:#   and stats['ca_mb_count'] < 2:
+                # if stats['norm_count_diff'] > 2:#   and stats['ca_mb_count'] < 2:
                 #check_stats(stats, self.jump_percentage, self.spectral_gap, self.npass) and :
 
                     cellsB_tree = np.setdiff1d(self.cells, cellsA)
@@ -479,10 +510,12 @@ class Linear_split():
                     lt = LinearTree(cellsA, cellsB_tree,
                                     mutsA, mutsB_tree, eA, eB)
                     # print(lt)
-                    internal_tree_list.insert(lt)
+                    f1, f2, f3 = self.check_metrics(cellsA, cellsB_tree, mutsA, mutsB_tree)
+                    if f1 <= 0.05 and f2 >= 0.15 and f3 >= 0.9:
+                        internal_tree_list.insert(lt)
 
-                    norm_list.append(self.compute_norm_likelihood(
-                        cellsA, cellsB, mutsA, mutsB_tree))
+                        norm_list.append(self.compute_norm_likelihood(
+                            cellsA, cellsB, mutsA, mutsB_tree))
             # self.use_copy_kernel = not self.use_copy_kernel
         best_tree = self.best_norm_like(internal_tree_list, norm_list)
   

@@ -714,11 +714,38 @@ class ClonalTree:
         #         prev_loglikelihood = loglikelihood
         
         return loglikelihood
-        
- 
 
-            
+    def get_cell_ancestor_pairs(self) -> Counter:
+        pairs = Counter()
+        for node in self.tree.nodes:
+            for children in nx.dfs_successors(self.tree, source=node).values():
+                for child in children:
+                    for cell1 in product(self.cell_mapping[node][0], [1]):
+                        for cell2 in product(self.cell_mapping[child][0], [1]):
+                            pairs[(cell1, cell2)] += 1
+        return pairs
 
+    def get_cell_cluster_pairs(self) -> Counter:
+        pairs = Counter()
+        for node in self.tree.nodes:
+            for cell1, cell2 in combinations(product(self.cell_mapping[node][0], [1]), 2):
+                if cell1 < cell2:
+                    pairs[(cell1, cell2)] += 1
+                else:
+                    pairs[(cell2, cell1)] += 1
+        return pairs
+
+    def get_cell_incomparable_pairs(self) -> Counter:
+        pairs = Counter()
+        for u, v in combinations(self.tree.nodes, 2):
+            if self.is_incomparable(self.tree, u, v):
+                for cell1 in product(self.cell_mapping[u][0], [1]):
+                    for cell2 in product(self.cell_mapping[v][0], [1]):
+                        if cell1 < cell2:
+                            pairs[(cell1, cell2)] += 1
+                        else:
+                            pairs[(cell2, cell1)] += 1
+        return pairs
 
     def get_ancestor_pairs(self, include_loss: bool=True) -> Counter:
         pairs = Counter()

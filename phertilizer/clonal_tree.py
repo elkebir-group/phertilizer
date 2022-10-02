@@ -574,12 +574,15 @@ class ClonalTree:
    
         cells = np.concatenate([self.cell_mapping[c][0] for c in clade])
         muts = self.mut_mapping[node]
+        cells= cells.astype(int)
+        muts= muts.astype(int)
         tot_count = np.count_nonzero(
                 data.total[np.ix_(cells, muts)], axis=0).reshape(-1)
 
         na_snvs = muts[tot_count ==0]
         muts = np.setdiff1d(muts, na_snvs)
-
+        # cells= cells.astype(int)
+        # muts= muts.astype(int)
         tot_count = np.count_nonzero(
                 data.total[np.ix_(cells, muts)], axis=0).reshape(-1)
         mut_count = np.count_nonzero(

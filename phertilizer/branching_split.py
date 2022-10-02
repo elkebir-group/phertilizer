@@ -102,6 +102,9 @@ class Branching_split():
 
         self.data = data
         self.total = data.total
+        self.like0 = data.like0
+        self.like1_dict = data.like1_dict
+        self.like1 = data.like1_marg
 
         self.cna_genotype_mode = cna_genotype_mode
 
@@ -365,11 +368,11 @@ class Branching_split():
         num_obsA = np.count_nonzero(self.total[np.ix_(cellsA, self.muts)],axis=0).mean()
         num_obsB = np.count_nonzero(self.total[np.ix_(cellsB, self.muts)],axis=0).mean()
 
-        # if num_obsA <= 3 and num_obsB <= 3:
-        #     mutsA = np.empty(shape=0, dtype=int)
-        #     mutsB = np.empty(shape=0, dtype=int)
-        #     mutsC = self.muts
-        #     return mutsA, mutsB, mutsC
+        if num_obsA <= 3 and num_obsB <= 3:
+            mutsA = np.empty(shape=0, dtype=int)
+            mutsB = np.empty(shape=0, dtype=int)
+            mutsC = self.muts
+            return mutsA, mutsB, mutsC
 
 
         like1 = self.data.like1_marg
@@ -401,12 +404,12 @@ class Branching_split():
 
         # for idx, m in enumerate(self.muts):
         for idx, m in enumerate(self.muts):
-            if mutsC_cand[idx] == max(mutsA_cand[idx], mutsB_cand[idx], mutsC_cand[idx]):
-                mutsC.append(m)
+            if mutsA_cand[idx] == max(mutsA_cand[idx], mutsB_cand[idx], mutsC_cand[idx]):
+                mutsA.append(m)
             elif mutsB_cand[idx] == max(mutsA_cand[idx], mutsB_cand[idx], mutsC_cand[idx]):
                 mutsB.append(m)
             else:
-                mutsA.append(m)
+                mutsC.append(m)
 
         return np.array(mutsA), np.array(mutsB), np.array(mutsC)
 
@@ -467,6 +470,8 @@ class Branching_split():
 
         # if (len(cellsA) > self.lamb and len(cellsB) > 1) or (len(cellsB) > self.lamb and len(cellsA) > 1):
         if len(cellsA) > 0 and len(cellsB) > 0:
+            norm_like = self.compute_norm_likelihood(cellsA, cellsB, mutsA, mutsB, mutsC)
+           
             # f1, f2, f3, f4 = self.check_metrics(cellsA, cellsB, mutsA, mutsB, mutsC)
             # if  stats['min_avg_ma'] <= 0.05 and stats['max_avg_ma'] >= 0.15 and stats['min_avg_mb'] <= 0.05 and stats['max_avg_mb'] >= 0.15:
              
@@ -474,11 +479,13 @@ class Branching_split():
             # if stats['abs_avg_ma_diff'] > 2:
             f1, f2, f3, f4, f5  = self.check_metrics(cellsA, cellsB, mutsA, mutsB, mutsC)
             if f1 <= 0.05 and f2 <= 0.05 and f3 >= 0.15 and f4 > 0.9 and f5 >= 0.9:
-             
-                cand_tree = BranchingTree(
-                        cellsA, cellsB, mutsA, mutsB, mutsC, eA, eB, eC=None)
-                self.cand_trees.insert(cand_tree)
-                print(cand_tree)
+                if norm_like > self.best_norm_like:
+                    self.best_norm_like = norm_like
+                    self.best_tree = BranchingTree(
+                            cellsA, cellsB, mutsA, mutsB, mutsC, eA, eB, eC=None)
+                    print(self.best_tree)
+                    # self.cand_trees.insert(cand_tree)
+                    
             # else:
             #     print("Potentially bad split, user beware")
     
@@ -531,6 +538,43 @@ class Branching_split():
     
 
         return feat1, feat2, feat3, feat4, feat5
+
+    def compute_norm_likelihood(self, cellsA, cellsB, mutsA, mutsB, mutsC):
+        '''    calculated the normalized variant log likelihood for the 
+                given partition
+
+
+        Parameters
+        ----------
+        cellsA : np.array
+            the cell indices in the first cluster
+        cellsB : np.array
+            the cell indices in the second cluster
+        mutsA : np.array
+            the SNV indices in the first cluster
+        mutsB : np.array
+            the SNV indices in the second cluster
+
+
+        Returns
+        -------
+        norm_like : float
+           the normalized likelihood of the partitions, excluding the cellsB/mutsB 
+           partition
+
+
+        '''
+        mutsC = mutsC.astype(int)
+        total_like = self.like1[np.ix_(self.cells, mutsC)].sum(
+        ) + self.like0[np.ix_(cellsA, mutsB)].sum() + self.like0[np.ix_(cellsB, mutsA)].sum()
+        total = np.count_nonzero(self.like0[np.ix_(
+            self.cells, mutsC)]) + np.count_nonzero(self.like0[np.ix_(cellsA, mutsB)]) + np.count_nonzero(self.like0[np.ix_(cellsB, mutsA)])
+
+        # total = len(cellsA)*len(self.muts) + len(cellsB)*len(mutsA)
+        norm_like = total_like/total
+
+        return norm_like
+
     def sprout(self):
         """ main flow control to obtain the maximum likelihood branching tree
         
@@ -565,21 +609,20 @@ class Branching_split():
         
 
         self.cand_trees = ClonalTreeList()
-
+        self.best_norm_like = np.NINF
+        self.best_tree = None
         for i in range(self.starts):
+      
             # self.use_copy_kernel= True
             self.run()
             self.use_copy_kernel = not self.use_copy_kernel
 
-        if self.cand_trees.has_trees():
-            best_branching_tree, _ = self.cand_trees.find_best_tree(self.data)
+        # if self.cand_trees.has_trees():
+        #     best_branching_tree, _ = self.cand_trees.find_best_tree(self.data)
 
           
             # cellsA = best_branching_tree.cell_mapping[0][0]
             # best_branching_tree.cell_mapping[0][0]=np.union1d(bad_cells, cellsA)
             # mutsA =  best_branching_tree.mut_mapping[0]
             # best_branching_tree.mut_mapping[0] = np.union1d(bad_snvs, mutsA)
-
-            return best_branching_tree
-        else:
-            return None
+        return self.best_tree

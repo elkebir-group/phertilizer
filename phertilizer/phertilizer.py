@@ -347,7 +347,7 @@ class Phertilizer:
                                 embedding[:, 1])
                 plt.gca().set_aspect('equal', 'datalim')
                 plt.title('UMAP projection of Read Depth', fontsize=24)
-                # plt.savefig("umap.png")
+                plt.savefig("/scratch/data/leah/phertilizer/simulation_study/test/umap.png")
                 
                 # emb_dat = np.hstack([cells, embedding])
                 # df = pd.DataFrame(emb_dat, columns=["cell", "V1", "V2"])

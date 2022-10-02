@@ -24,17 +24,17 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    pth = "/scratch/data/leah/phertilizer/ACT/run/test"
-    args = parser.parse_args([
-        "-C", f"{pth}/clusters.csv",
-        "-T", f"{pth}/sphyr_output.dot",
-        "--cell_lookup", f"{pth}/cell_lookup.csv",
-        "--mut_lookup", f"{pth}/mut_lookup.csv",
-        "--pred_cell", f"{pth}/pred_cell.csv",
-        "--pred_mut", f"{pth}/pred_mut.csv",
-        "-t", f"{pth}/sphyr_tree.txt",
-        "-p", f"{pth}/sphyr_tree.png",
-    ])
+    # pth = "/scratch/data/leah/phertilizer/ACT/run/test"
+    # args = parser.parse_args([
+    #     "-C", f"{pth}/clusters.csv",
+    #     "-T", f"{pth}/sphyr_output.dot",
+    #     "--cell_lookup", f"{pth}/cell_lookup.csv",
+    #     "--mut_lookup", f"{pth}/mut_lookup.csv",
+    #     "--pred_cell", f"{pth}/pred_cell.csv",
+    #     "--pred_mut", f"{pth}/pred_mut.csv",
+    #     "-t", f"{pth}/sphyr_tree.txt",
+    #     "-p", f"{pth}/sphyr_tree.png",
+    # ])
 
     inferred_tree, _ = BuildTree().build_sphyr(args.clusters, args.infer_tree)
     

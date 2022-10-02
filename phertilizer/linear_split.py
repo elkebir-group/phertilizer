@@ -234,8 +234,8 @@ class Linear_split():
 
         num_obs = np.count_nonzero(self.total[np.ix_(cellsA, muts)],axis=0)
         avg_obs = num_obs.mean()
-        # if avg_obs <= 5:
-        #     return muts, None
+        if avg_obs <= 3:
+            return muts, None
         # muts = np.setdiff1d(muts, na_muts)
         like0_array = self.like0[np.ix_(cellsA, muts)].mean(axis=0)
         like1_array = self.like1[np.ix_(cellsA, muts)].mean(axis=0)
@@ -524,16 +524,16 @@ class Linear_split():
                     lt = LinearTree(cellsA, cellsB_tree,
                                     mutsA, mutsB_tree, eA, eB)
                     # lt.post_process()
-                    print(lt)
+              
                     f1, f2, f3 = self.check_metrics(cellsA, cellsB_tree, mutsA, mutsB_tree)
                     if f1 <= 0.05 and f2 >= 0.15 and f3 >= 0.9:
-                        print(f1)
+                        # print(f1)
                     # lt.post_process(self.data)
-                    print(lt)
-                    internal_tree_list.insert(lt)
+                        # print(lt)
+                        internal_tree_list.insert(lt)
 
-                    norm_list.append(self.compute_norm_likelihood(
-                        cellsA, cellsB, mutsA, mutsB_tree))
+                        norm_list.append(self.compute_norm_likelihood(
+                            cellsA, cellsB, mutsA, mutsB_tree))
             # self.use_copy_kernel = not self.use_copy_kernel
         best_tree = self.best_norm_like(internal_tree_list, norm_list)
   
@@ -550,9 +550,9 @@ class Linear_split():
             print(f"like norm {like_norm}: parent norm {parent_norm}")
             if like_norm > parent_norm:
                 self.cand_splits.insert(best_tree)
-                # cb =np.setdiff1d(cells, best_tree.get_tip_cells(0))
+            # cb =np.setdiff1d(cells, best_tree.get_tip_cells(0))
                 self.norm_like_list.append(like_norm)
-                print(best_tree)
+                # print(best_tree)
                 #self.run(best_tree.get_tip_cells(0), best_tree.get_tip_muts(0), p, parent_norm=like_norm)
                 self.run(best_tree.get_tip_cells(0), best_tree.get_tip_muts(0), p, parent_norm= like_norm)
 

@@ -688,30 +688,30 @@ class ClonalTree:
                 c_dict = self.cell_cluster_genotypes(n=ncells)
                 self.reassign_snv(s, c_dict, data)
 
-        # for i in range(iterations):
+        for i in range(iterations):
             
-        #     c_dict = self.cell_cluster_genotypes(n=ncells)
-        #     for n in nodes:
-        #         if n != self.find_root():
-        #             muts = self.find_bad_snvs(data, n,q)
+            c_dict = self.cell_cluster_genotypes(n=ncells)
+            for n in nodes:
+                if n != self.find_root():
+                    muts = self.find_bad_snvs(data, n,q)
                 
-        #             for s in muts:
-        #                 self.reassign_snv(s, c_dict, data)
-        #             # loglikelihood = self.compute_likelihood(data)
-        #             # print(f'iteration {i} node: {n} variant {self.variant_likelihood} loglike: {loglikelihood}')
-        #             # cells = self.find_bad_cells(data, n,q)
-        #             # y_dict = self.snv_genotypes(m=nmuts)
-        #             # for c in cells:
-        #             #     self.reassign_cell(c, y_dict,data)
+                    for s in muts:
+                        self.reassign_snv(s, c_dict, data)
+                    # loglikelihood = self.compute_likelihood(data)
+                    # print(f'iteration {i} node: {n} variant {self.variant_likelihood} loglike: {loglikelihood}')
+                    # cells = self.find_bad_cells(data, n,q)
+                    # y_dict = self.snv_genotypes(m=nmuts)
+                    # for c in cells:
+                    #     self.reassign_cell(c, y_dict,data)
 
-        #         loglikelihood = self.compute_likelihood(data)
-        #         print(f'iteration {i} node: {n} variant {self.variant_likelihood} loglike: {loglikelihood}')
+                loglikelihood = self.compute_likelihood(data)
+                print(f'iteration {i} node: {n} variant {self.variant_likelihood} loglike: {loglikelihood}')
             
-        #     #check for termination if no improvements are made 
-        #     if prev_loglikelihood == loglikelihood:
-        #         break
-        #     else:
-        #         prev_loglikelihood = loglikelihood
+            #check for termination if no improvements are made 
+            if prev_loglikelihood == loglikelihood:
+                break
+            else:
+                prev_loglikelihood = loglikelihood
         
         return loglikelihood
         

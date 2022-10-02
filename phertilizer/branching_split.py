@@ -362,6 +362,16 @@ class Branching_split():
 
         '''
 
+        num_obsA = np.count_nonzero(self.total[np.ix_(cellsA, self.muts)],axis=0).mean()
+        num_obsB = np.count_nonzero(self.total[np.ix_(cellsB, self.muts)],axis=0).mean()
+
+        # if num_obsA <= 3 and num_obsB <= 3:
+        #     mutsA = np.empty(shape=0, dtype=int)
+        #     mutsB = np.empty(shape=0, dtype=int)
+        #     mutsC = self.muts
+        #     return mutsA, mutsB, mutsC
+
+
         like1 = self.data.like1_marg
 
         mutsA = []
@@ -464,11 +474,13 @@ class Branching_split():
             # if stats['abs_avg_ma_diff'] > 2:
             f1, f2, f3, f4, f5  = self.check_metrics(cellsA, cellsB, mutsA, mutsB, mutsC)
             if f1 <= 0.05 and f2 <= 0.05 and f3 >= 0.15 and f4 > 0.9 and f5 >= 0.9:
+             
                 cand_tree = BranchingTree(
-                    cellsA, cellsB, mutsA, mutsB, mutsC, eA, eB, eC=None)
+                        cellsA, cellsB, mutsA, mutsB, mutsC, eA, eB, eC=None)
                 self.cand_trees.insert(cand_tree)
-            else:
-                   print("Potentially bad split, user beware")
+                print(cand_tree)
+            # else:
+            #     print("Potentially bad split, user beware")
     
     def check_metrics(self, ca,cb, ma, mb, mc):
       

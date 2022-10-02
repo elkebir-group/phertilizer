@@ -193,7 +193,7 @@ class Linear_split():
 
         '''
 
-
+        # p = 0.1
         binary_counts = np.count_nonzero(self.var[np.ix_(cells, muts)], axis=0)
         binary_tcounts = np.count_nonzero(
             self.total[np.ix_(cells, muts)], axis=0)
@@ -232,13 +232,18 @@ class Linear_split():
 
         '''
 
+        num_obs = np.count_nonzero(self.total[np.ix_(cellsA, muts)],axis=0)
+        avg_obs = num_obs.mean()
+        # if avg_obs <= 5:
+        #     return muts, None
+        # muts = np.setdiff1d(muts, na_muts)
+        like0_array = self.like0[np.ix_(cellsA, muts)].mean(axis=0)
+        like1_array = self.like1[np.ix_(cellsA, muts)].mean(axis=0)
 
-        like0_array = self.like0[np.ix_(cellsA, muts)].sum(axis=0)
-        like1_array = self.like1[np.ix_(cellsA, muts)].sum(axis=0)
-
-        mask_pred = np.array(like0_array > like1_array)
+        mask_pred = np.array(like0_array >= like1_array)
         mutsB = muts[(mask_pred)]
         mutsA = np.setdiff1d(muts, mutsB)
+        
 
         return mutsA, mutsB
 
@@ -308,6 +313,12 @@ class Linear_split():
                 self.var[np.ix_(cells, mutsB)], axis=1).reshape(-1)
             mb_tot_count = np.count_nonzero(
                 self.total[np.ix_(cells, mutsB)], axis=1).reshape(-1)
+            
+            # mb_mut_count = np.sum(
+            #     self.var[np.ix_(cells, mutsB)], axis=1).reshape(-1)
+            # mb_tot_count = np.sum(
+            #     self.total[np.ix_(cells, mutsB)], axis=1).reshape(-1)
+
 
             cdist = self.copy_distance_matrix.copy()
             tmb = mb_mut_count/mb_tot_count
@@ -477,9 +488,9 @@ class Linear_split():
         
         internal_tree_list = ClonalTreeList()
         norm_list = []
-
+        input_muts = muts
         for s in range(self.starts):
-
+            muts = input_muts
           
 
             mutsA, mutsB = self.random_weighted_init_array(cells, muts, p)
@@ -494,7 +505,10 @@ class Linear_split():
 
                 eA, eB = self.assign_cna_events(cellsA, cellsB)
 
-                mutsA, mutsB = self.mut_assignment(cellsA, muts)
+                mutsA, mutsB= self.mut_assignment(cellsA, muts)
+                # muts = np.setdiff1d(muts, na_muts)
+
+                # mutsA, mutsB = self.cluster_muts(cellsA,cellsB, muts)
 
             print(f"number of iterations: {j}")
             if len(cellsA) >0 and len(cellsB) > 0:
@@ -506,16 +520,20 @@ class Linear_split():
                     # eA, eB = self.assign_cna_events(cellsA, cellsB_tree)
 
                     # mutsA, mutsB_tree = self.mut_assignment(cellsA, self.muts)
-                    mutsB_tree = np.setdiff1d(self.muts, mutsA)
+                    mutsB_tree = np.setdiff1d(muts, mutsA)
                     lt = LinearTree(cellsA, cellsB_tree,
                                     mutsA, mutsB_tree, eA, eB)
-                    # print(lt)
+                    # lt.post_process()
+                    print(lt)
                     f1, f2, f3 = self.check_metrics(cellsA, cellsB_tree, mutsA, mutsB_tree)
                     if f1 <= 0.05 and f2 >= 0.15 and f3 >= 0.9:
-                        internal_tree_list.insert(lt)
+                        print(f1)
+                    # lt.post_process(self.data)
+                    print(lt)
+                    internal_tree_list.insert(lt)
 
-                        norm_list.append(self.compute_norm_likelihood(
-                            cellsA, cellsB, mutsA, mutsB_tree))
+                    norm_list.append(self.compute_norm_likelihood(
+                        cellsA, cellsB, mutsA, mutsB_tree))
             # self.use_copy_kernel = not self.use_copy_kernel
         best_tree = self.best_norm_like(internal_tree_list, norm_list)
   
@@ -535,9 +553,11 @@ class Linear_split():
                 # cb =np.setdiff1d(cells, best_tree.get_tip_cells(0))
                 self.norm_like_list.append(like_norm)
                 print(best_tree)
-                self.run(best_tree.get_tip_cells(0), best_tree.get_tip_muts(0), p, parent_norm=like_norm)
-                # self.run(cb, self.muts, p, parent_norm= like_norm)
+                #self.run(best_tree.get_tip_cells(0), best_tree.get_tip_muts(0), p, parent_norm=like_norm)
+                self.run(best_tree.get_tip_cells(0), best_tree.get_tip_muts(0), p, parent_norm= like_norm)
 
+
+    
     @staticmethod
     def best_norm_like(tree_list, norm_like_list):
         if tree_list.size() == 0:
@@ -643,6 +663,148 @@ class Linear_split():
 
         return cell_like_series
 
+    def cluster_muts(self, cellsA, cellsB, muts):
+        '''   clusters an input set of cells into cellsA and cellsB using normalized min cut on a graph with edge
+        weights mixing SNV and CNA features
+
+        Parameters
+        ----------
+        mutsA : np.array
+            the current set of mutsA to include in the SNV features
+        mutsB : np.array
+            the current set of mutsB to include in the SNV features
+        cells : np.array
+            the set of cell indices to cluster into two partitions
+
+
+        Returns
+        -------
+        cellsA : np.array
+            the cell indices of the first cluster
+        cellsB : n.array
+            the cell indices of the second cluster
+        stats : dict
+            a dictionary containing the values of the stopping heuristics
+
+        '''
+
+
+        W, cell_features, muts = self.create_affinity_muts(cellsA,cellsB, muts)
+        if W is None:
+            return muts, np.empty(shape=0, dtype=int), None
+
+        if np.any(np.isnan(W)):
+            print("Terminating mutation clustering due to NANs in affinity matrix")
+            return muts, np.empty(shape=0, dtype=int), None
+
+        clusters, y_vals, labels, stats = normalizedMinCut(W, muts, self.np_rng)
+
+        muts1, muts2 = clusters
+
+        if cell_features is not None:
+            avg_ca_muts1= self.calc_feat(cellsA, muts1, axis=0).mean()
+            avg_ca_muts2= self.calc_feat(cellsA, muts2, axis=0).mean()
+
+            if avg_ca_muts1 <= avg_ca_muts2:
+                mutsA = muts1
+                mutsB = muts2
+            else:
+                mutsB = muts1
+                mutsA = muts2
+        else:
+            mutsA= muts1
+            cellsB = muts2
+   
+
+        return mutsA, mutsB
+
+
+    def create_affinity_muts(self,  cellsA, cellsB, muts):
+        '''   computes the edge weights w_ii' for the edge weights for the input graph to normalized min cut
+
+        Parameters
+        ----------
+        mutsA : np.array
+            the current set of mutsA to include in the SNV features
+        mutsB : np.array
+            the current set of mutsB to include in the SNV features
+        cells : np.array
+            the set of cell indices to represent nodes of the graph
+
+
+        Returns
+        -------
+        kernel : np.array
+            a cell x cell matrix containing the edge weights of the graph
+        mut_features_df : pd.Dataframe
+            a pandas dataframe containing the calculated mutsA and mutsB features for each cell
+ 
+
+        '''
+      
+
+        if len(cellsA) > 0 and len(cellsB) > 0:
+            vaf_ca = self.calc_feat(cellsA, muts, axis=0)
+
+
+            # vaf_cb = self.calc_feat(cellsB, muts, axis=0)
+        
+            muts = muts[np.logical_not(np.isnan(vaf_ca.reshape(-1)))]
+
+            vaf_ca = vaf_ca[np.logical_not(np.isnan(vaf_ca.reshape(-1))),:]
+
+      
+
+            # cell_features = np.hstack([vaf_ca, vaf_cb])
+            cell_features = vaf_ca
+            # copy_dist_mat = self.data.copy_distance.copy()
+
+          
+
+            # if we aren't able to impute mut features for cells, then we can't cluster
+            if np.any(np.isnan(cell_features)):
+                return None, None
+
+            cell_features_df = pd.DataFrame(cell_features, muts)
+
+            d_mat = squareform(pdist(cell_features, metric="euclidean"))
+
+            kw = snv_kernel_width(d_mat)
+            kernel = np.exp(-1*d_mat/kw)
+
+
+
+            return kernel, cell_features_df, muts
+        else:
+            return None, None
+    def calc_feat(self, cells, muts, axis=1):
+        ''' calculates the binary tumor mutational burden (tmb) of the given SNVs for each cell
+
+        Parameters
+        ----------
+        cells : np.array
+            the array of cell indices for which the tmb needs to be calcualted
+        muts : np.array
+            the SNVs to include in the tmb calculations
+
+
+        Returns
+        -------
+        tmb : np.array
+            the binary tumor mutational burden for each cell 
+ 
+
+        '''
+
+        var_count = np.count_nonzero(
+            self.data.var[np.ix_(cells, muts)], axis=axis).reshape(-1, 1)
+        total = np.count_nonzero(
+            self.data.total[np.ix_(cells, muts)], axis=axis).reshape(-1, 1)
+
+        feat= var_count/total
+
+        return feat
+
     def sprout(self):
         """ main flow control to obtain the maximum likelihood linear tree
         
@@ -679,7 +841,7 @@ class Linear_split():
 
         self.cand_splits = ClonalTreeList()
 
-        self.run(self.cells, self.muts, p=0.5)
+        self.run(self.cells, self.muts, p=0.15)
         # if self.cand_splits.has_trees():
         #     best_tree, _ = self.cand_splits.find_best_tree(self.data)
 

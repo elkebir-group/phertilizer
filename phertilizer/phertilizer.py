@@ -543,6 +543,7 @@ class Phertilizer:
             optimal_tree =IdentityTree(self.cells, self.muts)
   
         if post_process:
+        # if False:  
             print("Post-processing...")
             loglike = optimal_tree.post_process(self.data)# 0.1, 20)
         
@@ -567,6 +568,8 @@ class Phertilizer:
         # sprout_list = [  self.sprout_linear, self.sprout_branching]
         # sprout_list = [ self.sprout_linear]
         while len(seed_list) > 0:
+            # if key > 0:
+            #     break
            
             curr_seed = seed_list.pop()
             curr_seed.set_key(key)
@@ -590,6 +593,8 @@ class Phertilizer:
             else:
                 sprout_list =[ self.sprout_linear, self.sprout_branching]
 
+            # if key == 0:
+            #     sprout_list =[ self.sprout_linear]
 
           
             # if len(curr_seed.cells) < 2*self.params.lamb or len(curr_seed.muts) < 2*self.params.tau:
@@ -635,6 +640,8 @@ class Phertilizer:
            
             print(f"Number of subproblems remaining: {len(seed_list)}")
             key += 1
+            # if key > 1:
+            #     break
 
 
       

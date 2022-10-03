@@ -338,7 +338,7 @@ class Phertilizer:
                                     metric="manhattan",
                                     random_state=55)
                 embedding = reducer.fit_transform(bin_count_data)
-                pickle_save(embedding, "embedding.pickle")
+                # pickle_save(embedding, "embedding.pickle")
 
                 # copy_distance = squareform(pdist(bin_count_data, metric="euclidean"))
                 copy_distance = squareform(pdist(embedding, metric="euclidean"))
@@ -347,7 +347,7 @@ class Phertilizer:
                                 embedding[:, 1])
                 plt.gca().set_aspect('equal', 'datalim')
                 plt.title('UMAP projection of Read Depth', fontsize=24)
-                plt.savefig("/scratch/data/leah/phertilizer/simulation_study/test/umap.png")
+                # plt.savefig("/scratch/data/leah/phertilizer/simulation_study/test/umap.png")
                 
                 # emb_dat = np.hstack([cells, embedding])
                 # df = pd.DataFrame(emb_dat, columns=["cell", "V1", "V2"])

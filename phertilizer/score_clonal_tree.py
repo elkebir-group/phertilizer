@@ -64,6 +64,26 @@ class TreeEval():
                            / sum(incomparable.values())
         return incomparable_recall
 
+    def cell_ancestor_pair_recall(self) -> float:
+        ancestral = self.gt_tree.get_cell_ancestor_pairs()
+        ancestral_recall = sum((ancestral & self.inferred_tree.get_cell_ancestor_pairs()).values())\
+                           / sum(ancestral.values())
+        return ancestral_recall
+    
+    def cell_clustered_pair_recall(self) -> float:
+        clustered = self.gt_tree.get_cell_cluster_pairs()
+        clustered_recall = sum((clustered & self.inferred_tree.get_cell_cluster_pairs()).values())\
+                           / sum(clustered.values())
+        return clustered_recall
+
+    def cell_incomparable_pair_recall(self) -> float:
+        incomparable = self.gt_tree.get_cell_incomparable_pairs()
+        if sum(incomparable.values()) == 0:
+            return 1
+        incomparable_recall = sum((incomparable & self.inferred_tree.get_cell_incomparable_pairs()).values())\
+                           / sum(incomparable.values())
+        return incomparable_recall
+
     def compute_cell_ari(self) -> float:
         gt_cell = self.gt_tree.get_cell_clusters()
         pred_cell = self.inferred_tree.get_cell_clusters()
@@ -177,6 +197,9 @@ class TreeEval():
             "ancestral_recall": self.ancestor_pair_recall(include_loss),
             "incomparable_recall": self.incomparable_pair_recall(include_loss),
             "clustered_recall": self.clustered_pair_recall(include_loss),
+            "cell_ancestral_recall": self.cell_ancestor_pair_recall(),
+            "cell_incomparable_recall": self.cell_incomparable_pair_recall(),
+            "cell_clustered_recall": self.cell_clustered_pair_recall(),
             "event_hamming": self.event_hamming(),
             "genotype_hamming": self.genotype_hamming(),
             "loss_precision": loss_metric["precision"],

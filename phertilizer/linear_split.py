@@ -536,7 +536,8 @@ class Linear_split():
                             cellsA, cellsB, mutsA, mutsB_tree))
                     else:
                         print('here')
-            # self.use_copy_kernel = not self.use_copy_kernel
+
+            self.use_copy_kernel = not self.use_copy_kernel
         best_tree = self.best_norm_like(internal_tree_list, norm_list)
   
         if best_tree is not None:
@@ -558,7 +559,7 @@ class Linear_split():
                 #self.run(best_tree.get_tip_cells(0), best_tree.get_tip_muts(0), p, parent_norm=like_norm)
                 self.run(best_tree.get_tip_cells(0), best_tree.get_tip_muts(0), p, parent_norm= like_norm)
 
-
+        
     
     @staticmethod
     def best_norm_like(tree_list, norm_like_list):

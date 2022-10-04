@@ -58,7 +58,8 @@ def main(args):
                     mode = args.mode
 
                      )
-
+    if args.embedding is not None:
+        ph.save_embedding(args.embedding)
     if args.min_frac is not None:
         min_cell = args.min_frac
         min_snvs = args.min_frac
@@ -70,6 +71,7 @@ def main(args):
     seed  = args.seed
     best_like = np.NINF
     best_tree, best_list, best_loglikes = None, None, None
+
     for i in range(args.runs):
         print(f"Run {i+1}")
         grow_tree, pre_process_list, loglikelihood = ph.phertilize(
@@ -161,6 +163,7 @@ def main(args):
         pickle_save(ph.params, args.params)
     
 
+
     print("Thanks for planting a tree! See you later, friend.")
 
 
@@ -234,6 +237,8 @@ def get_options():
                         help="filename where pickled data should be saved for post-processing")
     parser.add_argument("--params", type=str,
                         help="filename where pickled parameters should be save")      
+    parser.add_argument("--embedding", type=str,
+                        help="filename where the umap coordinates should be saved")  
     args = parser.parse_args(None if sys.argv[1:] else ['-h'])
 
 #/scratch/data/leah/phertilizer/simulations/phertilizer/recomb_rd/clones7_l0_loh0_p0.01_ck1/s12_n1500_m5000

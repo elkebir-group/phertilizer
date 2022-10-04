@@ -405,7 +405,15 @@ class Phertilizer:
                         )
     
 
-   
+    def save_embedding(self, fname):
+        emb_dat = self.data.read_depth
+
+        cells = self.data.cell_lookup.sort_index().values.reshape(-1,1)
+  
+        emb_dat = np.hstack([cells, emb_dat])
+        df = pd.DataFrame(emb_dat, columns=["cell", "V1", "V2"])
+        df.to_csv(fname, index=False)
+
     def get_id_mappings(self):
         '''Gets the mapping of the internal cell and SNV indices to the supplied labels
 

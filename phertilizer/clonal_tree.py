@@ -700,12 +700,7 @@ class ClonalTree:
                 
                     for s in muts:
                         self.reassign_snv(s, c_dict, data)
-                    # loglikelihood = self.compute_likelihood(data)
-                    # print(f'iteration {i} node: {n} variant {self.variant_likelihood} loglike: {loglikelihood}')
-                    # cells = self.find_bad_cells(data, n,q)
-                    # y_dict = self.snv_genotypes(m=nmuts)
-                    # for c in cells:
-                    #     self.reassign_cell(c, y_dict,data)
+                
 
                 loglikelihood = self.compute_likelihood(data)
                 print(f'iteration {i} node: {n} variant {self.variant_likelihood} loglike: {loglikelihood}')
@@ -715,6 +710,15 @@ class ClonalTree:
                 break
             else:
                 prev_loglikelihood = loglikelihood
+
+        for n in nodes:
+            if n != self.find_root():
+                cells = self.find_bad_cells(data, n,q)
+            y_dict = self.snv_genotypes(m=nmuts)
+            for c in cells:
+                self.reassign_cell(c, y_dict,data)
+        
+        loglikelihood = self.compute_likelihood(data)
         
         return loglikelihood
 

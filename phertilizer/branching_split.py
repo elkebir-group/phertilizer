@@ -368,7 +368,7 @@ class Branching_split():
         num_obsA = np.count_nonzero(self.total[np.ix_(cellsA, self.muts)],axis=0).mean()
         num_obsB = np.count_nonzero(self.total[np.ix_(cellsB, self.muts)],axis=0).mean()
 
-        if num_obsA <= 3 and num_obsB <= 3:
+        if num_obsA <= 2 and num_obsB <=2:
             mutsA = np.empty(shape=0, dtype=int)
             mutsB = np.empty(shape=0, dtype=int)
             mutsC = self.muts
@@ -477,14 +477,17 @@ class Branching_split():
              
             # if check_stats(stats, self.jump_percentage, self.spectral_gap, self.npass):
             # if stats['abs_avg_ma_diff'] > 2:
+            
+            cand_tree= BranchingTree(
+                            cellsA, cellsB, mutsA, mutsB, mutsC, eA, eB, eC=None)
+            # self.cand_trees.insert(cand_tree)
             f1, f2, f3, f4, f5  = self.check_metrics(cellsA, cellsB, mutsA, mutsB, mutsC)
-            if f1 <= 0.05 and f2 <= 0.05 and f3 >= 0.15 and f4 > 0.9 and f5 >= 0.9:
+            if f1 <= 0.075 and f2 <= 0.075 and f3 >= 0.15 and f4 > 0.9 and f5 >= 0.9:
                 if norm_like > self.best_norm_like:
                     self.best_norm_like = norm_like
-                    self.best_tree = BranchingTree(
-                            cellsA, cellsB, mutsA, mutsB, mutsC, eA, eB, eC=None)
-                    print(self.best_tree)
-                    # self.cand_trees.insert(cand_tree)
+                    self.best_tree = cand_tree
+                    # print(self.best_tree)
+                 
                     
             # else:
             #     print("Potentially bad split, user beware")

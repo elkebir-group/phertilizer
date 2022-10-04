@@ -238,7 +238,7 @@ def get_options():
 
 #/scratch/data/leah/phertilizer/simulations/phertilizer/recomb_rd/clones7_l0_loh0_p0.01_ck1/s12_n1500_m5000
     base = "/scratch/data/leah/phertilizer"
-    instance= "s12_n1000_m10000_c5_p0.1_cna2_l0_dcl2_dsnv2_dcnv2"
+    instance= "s13_n1000_m10000_c9_p0.1_cna3_l0_dcl2_dsnv2_dcnv2"
     inpath = f"{base}/simulation_study/downsample/{instance}"
     outpath = f"{base}/simulation_study/test"
     # inpath =outpath
@@ -249,7 +249,7 @@ def get_options():
         "--bin_count_data", f"{inpath}/reads_per_bin.csv",
         # "-f", f"{outpath}/dataframe.tsv",
         # "--bin_count_dat", f"{outpath}/bin_counts.csv",
-        "-d", "14",
+        "-d", "12",
         "-c", "5",
         "-j", "50",
         "-s", "5",
@@ -258,7 +258,7 @@ def get_options():
         "--radius", "0.975",
         "--gamma", "0.95",
         "--min_obs", "7",
-        # "--post_process",
+        "--post_process",
         "-m", f"{outpath}/pred_mut.csv",
         "-n", f"{outpath}/pred_cell.csv",
         "--tree", f"{outpath}/best_tree.png",

@@ -234,7 +234,7 @@ class Linear_split():
 
         num_obs = np.count_nonzero(self.total[np.ix_(cellsA, muts)],axis=0)
         avg_obs = num_obs.mean()
-        if avg_obs <= 3:
+        if avg_obs <= 2:
             return muts, None
         # muts = np.setdiff1d(muts, na_muts)
         like0_array = self.like0[np.ix_(cellsA, muts)].mean(axis=0)
@@ -526,7 +526,7 @@ class Linear_split():
                     # lt.post_process()
               
                     f1, f2, f3 = self.check_metrics(cellsA, cellsB_tree, mutsA, mutsB_tree)
-                    if f1 <= 0.05 and f2 >= 0.15 and f3 >= 0.9:
+                    if f1 <= 0.075 and f2 >= 0.15 and f3 >= 0.9:
                         # print(f1)
                     # lt.post_process(self.data)
                         # print(lt)
@@ -534,6 +534,8 @@ class Linear_split():
 
                         norm_list.append(self.compute_norm_likelihood(
                             cellsA, cellsB, mutsA, mutsB_tree))
+                    else:
+                        print('here')
             # self.use_copy_kernel = not self.use_copy_kernel
         best_tree = self.best_norm_like(internal_tree_list, norm_list)
   

@@ -520,7 +520,7 @@ class Linear_split():
                     # eA, eB = self.assign_cna_events(cellsA, cellsB_tree)
 
                     # mutsA, mutsB_tree = self.mut_assignment(cellsA, self.muts)
-                    mutsB_tree = np.setdiff1d(muts, mutsA)
+                    mutsB_tree = np.setdiff1d(self.muts, mutsA)
                     lt = LinearTree(cellsA, cellsB_tree,
                                     mutsA, mutsB_tree, eA, eB)
                     # lt.post_process()

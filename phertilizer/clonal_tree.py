@@ -537,6 +537,8 @@ class ClonalTree:
      
         cells = np.concatenate([self.cell_mapping[c][0] for c in clade])
         muts = self.mut_mapping[node]
+        cells =cells.astype(int)
+        muts= muts.astype(int)
         tot_count = np.count_nonzero(
                 data.total[np.ix_(cells, muts)], axis=1).reshape(-1)
         na_cells = cells[tot_count ==0]
@@ -711,14 +713,14 @@ class ClonalTree:
             else:
                 prev_loglikelihood = loglikelihood
 
-        for n in nodes:
-            if n != self.find_root():
-                cells = self.find_bad_cells(data, n,q)
-            y_dict = self.snv_genotypes(m=nmuts)
-            for c in cells:
-                self.reassign_cell(c, y_dict,data)
+        # for n in nodes:
+        #     if n != self.find_root():
+        #         cells = self.find_bad_cells(data, n,q)
+        #     y_dict = self.snv_genotypes(m=nmuts)
+        #     for c in cells:
+        #         self.reassign_cell(c, y_dict,data)
         
-        loglikelihood = self.compute_likelihood(data)
+        # loglikelihood = self.compute_likelihood(data)
         
         return loglikelihood
 

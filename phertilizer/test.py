@@ -58,7 +58,8 @@ def main(args):
                     mode = args.mode
 
                      )
-
+    if args.embedding is not None:
+        ph.save_embedding(args.embedding)
     if args.min_frac is not None:
         min_cell = args.min_frac
         min_snvs = args.min_frac
@@ -233,12 +234,14 @@ def get_options():
     parser.add_argument("--data", type=str,
                         help="filename where pickled data should be saved for post-processing")
     parser.add_argument("--params", type=str,
-                        help="filename where pickled parameters should be save")      
+                        help="filename where pickled parameters should be save")     
+    parser.add_argument("--embedding", type=str,
+                        help="filename where the umap coordinates should be saved") 
     # args = parser.parse_args(None if sys.argv[1:] else ['-h'])
 
 #/scratch/data/leah/phertilizer/simulations/phertilizer/recomb_rd/clones7_l0_loh0_p0.01_ck1/s12_n1500_m5000
     base = "/scratch/data/leah/phertilizer"
-    instance= "s13_n1000_m10000_c9_p0.1_cna3_l0_dcl2_dsnv2_dcnv2"
+    instance= "s12_n2000_m10000_c9_p0.01_cna3_l0_dcl2_dsnv2_dcnv2"
     inpath = f"{base}/simulation_study/downsample/{instance}"
     outpath = f"{base}/simulation_study/test"
     # inpath =outpath
@@ -258,7 +261,7 @@ def get_options():
         "--radius", "0.975",
         "--gamma", "0.95",
         "--min_obs", "7",
-        "--post_process",
+        # "--post_process",
         "-m", f"{outpath}/pred_mut.csv",
         "-n", f"{outpath}/pred_cell.csv",
         "--tree", f"{outpath}/best_tree.png",
@@ -270,8 +273,9 @@ def get_options():
         "--mut_lookup", f"{outpath}/mut_lookup.csv",
         "--npass", "2",
         "--mode", "rd",
-     "--use_copy_kernel",
-    #  "--post_process"
+    #  "--use_copy_kernel",
+     "--embedding",f"{outpath}/embedding.csv"
+     "--post_process"
 
 
 ])

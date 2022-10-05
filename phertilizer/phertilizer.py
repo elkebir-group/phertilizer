@@ -582,8 +582,7 @@ class Phertilizer:
             curr_seed = seed_list.pop()
             curr_seed.set_key(key)
             print(curr_seed)
-            if len(curr_seed.cells)==812 or len(curr_seed.cells)==8016:
-                print("here")
+           
             self.mapping_list[key] = []
             
             self.explored_seeds[key] = deepcopy(curr_seed)
@@ -796,6 +795,7 @@ class Phertilizer:
             seed_list =best_tree.get_seeds(ancestral_muts)
             seed.set_linear(best_tree)
             # print(best_tree)
+            # print(num_trees)
             if num_trees >= 2:
                 start = num_trees -1
                 # root = tree_list.index_tree(start)
@@ -823,7 +823,7 @@ class Phertilizer:
                     curr_seed.set_linear(next_tree)
                     ca_cells = cA
                     ma_muts = mA
-                    print(next_tree)
+                    # print(next_tree)
                     next_seeds = next_tree.get_seeds(ancestral_muts)
                     seed_list += next_seeds
                     

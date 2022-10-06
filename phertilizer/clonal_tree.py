@@ -1015,19 +1015,14 @@ class LinearTree(ClonalTree):
             em[1] = eB
         super().__init__(t, cm, mm, ml, em)
 
-    def is_valid(self, lamb, tau):
-        return True
-        #return len(self.get_tip_cells(0)) > lamb and len(self.mut_mapping[0]) > tau and len(self.get_tip_cells(1)) > lamb #and len(self.get_tip_muts(1)) > tau
 
-    def get_seeds(self,  ancestral_muts):
+    def get_seeds(self):
         seed_list = []
 
         cellsB = self.get_tip_cells(1)
         mutsB = self.get_tip_muts(1)
-        # if len(cellsB) > lamb and len(mutsB) > tau:
-        anc_muts = np.sort(np.union1d(ancestral_muts, self.mut_mapping[0]))
-        anc_muts = np.empty(shape=0, dtype=int)
-        seed_list.append(Seed(cellsB, mutsB, anc_muts))
+     
+        seed_list.append(Seed(cellsB, mutsB))
 
         return seed_list
 
@@ -1055,33 +1050,18 @@ class BranchingTree(ClonalTree):
         ml = {}
         super().__init__(t, cm, mm, ml, em)
 
-    def is_valid(self, lamb, tau):
-        cells_valid = len(self.get_tip_cells(1)) > lamb and len(self.get_tip_cells(2)) > lamb
 
-        muts_valid =len(self.mut_mapping[1]) > tau or len(self.mut_mapping[2]) > tau 
-        muts_valid = True
-        cells_valid = True
-        return muts_valid and cells_valid
-
-        # if (len(self.get_tip_cells(1)) > lamb and len(self.mut_mapping[1]) > tau) or (len(self.get_tip_cells(2)) > lamb and len(self.mut_mapping[2]) > tau):
-        #     return True
-        # else:
-        #     return False
-
-    def get_seeds(self, ancestral_muts):
+    def get_seeds(self):
 
         seed_list = []
         leaves = [1, 2]
-        ancestral_muts = np.sort(np.union1d(
-            ancestral_muts, self.mut_mapping[0]))
-        ancestral_muts = np.empty(shape=0, dtype=int)
+   
         for l in leaves:
 
             cells = self.get_tip_cells(l)
             muts = self.mut_mapping[l]
-            # if len(cells) > lamb and len(muts) > tau:
           
-            seed_list.append(Seed(cells, muts, ancestral_muts))
+            seed_list.append(Seed(cells, muts))
 
         return seed_list
 
@@ -1098,10 +1078,9 @@ class IdentityTree(ClonalTree):
             em[0] = events
         super().__init__(t, cm, mm, ml, em)
 
-    def is_valid(self, lamb, tau):
-        return True
 
-    def get_seeds(self,  ancestral_muts=None):
+
+    def get_seeds(self):
         return []
 
 

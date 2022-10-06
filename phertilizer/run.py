@@ -27,20 +27,9 @@ def main(args):
         bin_count_data = pd.read_table(args.bin_count_data)
 
     print(bin_count_data.head())
-    if args.bin_count_normal is not None:
-        if '.csv' in args.bin_count_normal:
-            bin_count_normal = pd.read_csv(args.bin_count_normal)
 
-        else:
-            bin_count_normal = pd.read_table(args.bin_count_normal)
-    else:
-        bin_count_normal = None
 
-    if args.snv_bin_mapping is not None:
-        snv_bin_mapping = pd.read_csv(args.snv_bin_mapping, names=[
-                                      'mutation_id', 'chr', 'bin'])
-    else:
-        snv_bin_mapping = None
+
 
     print("Input data:")
     print(variant_data.head())
@@ -49,23 +38,14 @@ def main(args):
 
     ph = Phertilizer(variant_data,
                      bin_count_data,
-                     bin_count_normal,
-                     snv_bin_mapping,
                      alpha =args.alpha,
                      max_copies = args.copies,
-                    neutral_mean = args.neutral_mean,
-                    neutral_eps = args.neutral_eps,
                     mode = args.mode,
                     dim_reduce = not args.no_umap )
+
     if args.embedding is not None:
         ph.save_embedding(args.embedding)
-    if args.min_frac is not None:
-        min_cell = args.min_frac
-        min_snvs = args.min_frac
 
-    else:
-        min_cell = args.min_cells
-        min_snvs = args.min_snvs
     
     seed  = args.seed
     best_like = np.NINF

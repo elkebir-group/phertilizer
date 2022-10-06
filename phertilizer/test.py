@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+#!/usr/bin/env python
+
 import argparse
 import sys
 import pandas as pd
@@ -49,38 +51,26 @@ def main(args):
 
     ph = Phertilizer(variant_data,
                      bin_count_data,
-                     bin_count_normal,
-                     snv_bin_mapping,
                      alpha =args.alpha,
                      max_copies = args.copies,
-                    neutral_mean = args.neutral_mean,
-                    neutral_eps = args.neutral_eps,
-                    mode = args.mode
-
-                     )
+                    mode = args.mode,
+                    dim_reduce = not args.no_umap )
+                    
     if args.embedding is not None:
         ph.save_embedding(args.embedding)
-    if args.min_frac is not None:
-        min_cell = args.min_frac
-        min_snvs = args.min_frac
 
-    else:
-        min_cell = args.min_cells
-        min_snvs = args.min_snvs
     
     seed  = args.seed
     best_like = np.NINF
     best_tree, best_list, best_loglikes = None, None, None
+
     for i in range(args.runs):
         print(f"Run {i+1}")
         grow_tree, pre_process_list, loglikelihood = ph.phertilize(
-            min_cell=min_cell,
-            min_snvs=min_snvs,
             max_iterations=args.iterations,
             starts=args.starts,
             seed=100*seed + i,
             radius=args.radius,
-            npass=args.npass,
             gamma= 0.95,
             d = args.min_obs,
             use_copy_kernel = args.use_copy_kernel,
@@ -149,9 +139,6 @@ def main(args):
     if args.pred_mut is not None:
         pmut.to_csv(args.pred_mut, index=False)
 
-    # if args.pred_event is not None:
-    #     event_df.to_csv(args.pred_event)
-
     if args.tree_path is not None:
         best_list.save_the_trees(args.tree_path)
     
@@ -161,6 +148,7 @@ def main(args):
     if args.params is not None:
         pickle_save(ph.params, args.params)
     
+
 
     print("Thanks for planting a tree! See you later, friend.")
 
@@ -237,6 +225,9 @@ def get_options():
                         help="filename where pickled parameters should be save")     
     parser.add_argument("--embedding", type=str,
                         help="filename where the umap coordinates should be saved") 
+    parser.add_argument("--no-umap", action="store_true",
+                        help="flag to indicate that input reads per bin file should Not undergo dimensionality reduction")
+
     # args = parser.parse_args(None if sys.argv[1:] else ['-h'])
 
 #/scratch/data/leah/phertilizer/simulations/phertilizer/recomb_rd/clones7_l0_loh0_p0.01_ck1/s12_n1500_m5000

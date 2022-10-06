@@ -224,12 +224,8 @@ class Phertilizer:
 
     def __init__(self, variant_count_data, 
                       bin_count_data,
-                      bin_count_normal = None,
-                      snv_bin_mapping = None,
                       alpha = 0.001,
                       max_copies = 5,
-                      neutral_mean = 1.0,
-                      neutral_eps = 0.05,
                       mode  = "var",
                       dim_reduce = True
                       ):
@@ -330,7 +326,6 @@ class Phertilizer:
                         like1_dict,
                         copy_distance,
                         cnn_hmm,
-                        snv_bin_mapping,
                         use_read_depth,
                         )
     
@@ -705,7 +700,7 @@ class Phertilizer:
                     ca_cells = cA
                     ma_muts = mA
                     # print(next_tree)
-                    next_seeds = next_tree.get_seeds(ancestral_muts)
+                    next_seeds = next_tree.get_seeds()
                     seed_list += next_seeds
                     
                     curr_seed = next_seeds[0]

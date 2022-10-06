@@ -375,7 +375,7 @@ class Branching_split():
                             cellsA, cellsB, mutsA, mutsB, mutsC)
     
             f1, f2, f3, f4, f5  = self.check_metrics(cellsA, cellsB, mutsA, mutsB, mutsC)
-            if f1 <= 0.075 and f2 <= 0.075 and f3 >= 0.15 and f4 > 0.9 and f5 >= 0.9:
+            if f1 <= 0.075 and f2 <= 0.075 and f3 >= 0.15 and f4 >=0.8 and f5 >= 0.8:
                 if norm_like > self.best_norm_like:
                     self.best_norm_like = norm_like
                     self.best_tree = cand_tree

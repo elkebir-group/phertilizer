@@ -368,11 +368,11 @@ class Branching_split():
         num_obsA = np.count_nonzero(self.total[np.ix_(cellsA, self.muts)],axis=0).mean()
         num_obsB = np.count_nonzero(self.total[np.ix_(cellsB, self.muts)],axis=0).mean()
 
-        if num_obsA <= 5 or num_obsB <=5:
-            mutsA = np.empty(shape=0, dtype=int)
-            mutsB = np.empty(shape=0, dtype=int)
-            mutsC = self.muts
-            return mutsA, mutsB, mutsC
+        # if num_obsA <= 3 or num_obsB <=3:
+        #     mutsA = np.empty(shape=0, dtype=int)
+        #     mutsB = np.empty(shape=0, dtype=int)
+        #     mutsC = self.muts
+            # return mutsA, mutsB, mutsC
 
 
         like1 = self.data.like1_marg

@@ -234,8 +234,8 @@ class Linear_split():
 
         num_obs = np.count_nonzero(self.total[np.ix_(cellsA, muts)],axis=0)
         avg_obs = num_obs.mean()
-        # if avg_obs <= 3:
-        #     return muts, None
+        if avg_obs <= 2:
+            return muts, None
         # muts = np.setdiff1d(muts, na_muts)
         like0_array = self.like0[np.ix_(cellsA, muts)].mean(axis=0)
         like1_array = self.like1[np.ix_(cellsA, muts)].mean(axis=0)

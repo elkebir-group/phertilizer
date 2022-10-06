@@ -230,21 +230,19 @@ class Phertilizer:
                       max_copies = 5,
                       neutral_mean = 1.0,
                       neutral_eps = 0.05,
-                      mode  = "var"
+                      mode  = "var",
+                      dim_reduce = True
                       ):
    
         if mode == "var":
             use_read_depth =False
         else:
             use_read_depth = True
-        self.states = ("gain", "loss", "neutral")
-        self.cna_genotype_mode = bin_count_normal is not None and snv_bin_mapping is not None
-     
-
+        
+        
         self.mapping_list = None
         self.explored_seeds = None
 
-        self.min_loss =0
 
         #wrangle input data into the correct format
         variant_count_data['chr_mutation'] = variant_count_data['chr'].astype('str') + "_" + \
@@ -267,92 +265,41 @@ class Phertilizer:
         
         variant_count_data= variant_count_data.set_index(["cell", "mutation"])
 
-        # pickle_save(cell_lookup,"/scratch/data/leah/phertilizer/ACT/run/TN3_post/cell_lookup.pickle")
-        # pickle_save(mut_lookup,"/scratch/data/leah/phertilizer/ACT/run/TN3_post/mut_lookup.pickle")
+   
 
 
     
-        if self.cna_genotype_mode:
-            snv_bin_mapping['chr_mutation'] = snv_bin_mapping['chr'].astype('str') + "_" + \
-            snv_bin_mapping['mutation_id'].astype(str)      
-            snv_bin_mapping['mutation'] = mut_series.loc[snv_bin_mapping['chr_mutation']].values     
-            snv_bin_mapping = snv_bin_mapping.set_index("mutation").sort_index()
-            snv_bin_mapping = snv_bin_mapping['bin']
-
-            bin_count_data['cell_index'] = cell_series[bin_count_data['cell']].values
-            bin_count_data.sort_values(by=['cell_index'])
-
-            
-            bin_count_data.drop(['cell', 'cell_index'], inplace=True, axis=1)
-            bin_count_raw =   bin_count_data.div(bin_count_data.sum(axis=1), axis=0)
-            bin_count_raw = bin_count_raw.to_numpy()
           
-            
-            bin_count_normal = bin_count_normal.drop(['cell'], axis=1)
-            bin_count_normal=   bin_count_normal.div(bin_count_normal.sum(axis=1), axis=0)
-                
-            bin_normal = bin_count_normal.median()
+       
+        bin_count_data['cell_index'] = cell_series[bin_count_data['cell']].values
+        bin_count_data = bin_count_data.sort_values(by=['cell_index'])
+        bin_count_data.drop(['cell', 'cell_index'], inplace=True, axis=1)
+        bin_count_data = bin_count_data.to_numpy()
+        bin_count_data = bin_count_data/(bin_count_data.sum(axis=1).reshape(-1,1))
 
-            bins = np.arange(0, bin_normal.shape[0])
-            bin_mapping = pd.Series(data=bin_normal.index, index=bins)
+        if dim_reduce:
+      
+            reducer = umap.UMAP(n_neighbors=40,
+                                min_dist=0,
+                                n_components=2,
+                                spread=1,
+                                metric="manhattan",
+                                random_state=55)
+            embedding = reducer.fit_transform(bin_count_data)
+  
 
-            bin_locs = bin_mapping.to_list()
-            chromosomes = [c.split(".")[0] for c in bin_locs]
-            chromosomes = [int(c[3:]) for c in chromosomes]
-            chrom_series = pd.Series(chromosomes, bin_mapping.index)
-
-           
-            bin_normal = pd.Series(data=bin_normal.values, index= bins)
-
-            baseline = bin_normal.values
           
-            rdr = bin_count_raw/baseline[ None, :]
-            copy_distance = squareform(pdist(rdr, metric="euclidean"))
 
-              
-            cnn_hmm = CNA_HMM(bins, rdr, chrom_series, 
-                                    neutral_mean=neutral_mean,
-                                    neutral_eps=neutral_eps
-                                 )
-          
+            # plt.scatter(
+            #                 embedding[:, 0],
+            #                 embedding[:, 1])
+            # plt.gca().set_aspect('equal', 'datalim')
+            # plt.title('UMAP projection of Read Depth', fontsize=24)
         else:
-            bin_count_data['cell_index'] = cell_series[bin_count_data['cell']].values
-            bin_count_data = bin_count_data.sort_values(by=['cell_index'])
-            cells = bin_count_data["cell"].to_numpy().reshape(-1,1)
-            bin_count_data.drop(['cell', 'cell_index'], inplace=True, axis=1)
-            bin_count_data = bin_count_data.to_numpy()
-            bin_count_data = bin_count_data/(bin_count_data.sum(axis=1).reshape(-1,1))
-        #    umap_dist = "manhattan",
-        #              umap_min_dist = 0,
-        #              umap_spread = 1,
-        #              umap_n_neighbors = 40,
-            if True:
-                # embedding = pickle_load("embedding.pickle")
-                # import phate
-                # phate_op = phate.PHATE()
-                # embedding= phate_op.fit_transform(bin_count_data)
-                reducer = umap.UMAP(n_neighbors=40,
-                                    min_dist=0,
-                                    n_components=2,
-                                    spread=1,
-                                    metric="manhattan",
-                                    random_state=55)
-                embedding = reducer.fit_transform(bin_count_data)
-                # pickle_save(embedding, "embedding.pickle")
+            embedding= bin_count_data
 
-                # copy_distance = squareform(pdist(bin_count_data, metric="euclidean"))
-                copy_distance = squareform(pdist(embedding, metric="euclidean"))
-                plt.scatter(
-                                embedding[:, 0],
-                                embedding[:, 1])
-                plt.gca().set_aspect('equal', 'datalim')
-                plt.title('UMAP projection of Read Depth', fontsize=24)
-                # plt.savefig("/scratch/data/leah/phertilizer/simulation_study/test/umap.png")
-                
-                # emb_dat = np.hstack([cells, embedding])
-                # df = pd.DataFrame(emb_dat, columns=["cell", "V1", "V2"])
-                # df.to_csv("umap_coord.csv", index=False)
-            cnn_hmm = None
+        copy_distance = squareform(pdist(embedding, metric="euclidean"))
+        cnn_hmm = None
         
      
      
@@ -365,22 +312,6 @@ class Phertilizer:
         like1_series= compute_like1(variant_count_data, 1, max_copies,  alpha, coeff_array)
         like1_marg = sparse_matrix(like1_series)
         like1_dict = None
-        if self.cna_genotype_mode:
-            like1_dict = {}
-
-            for s in self.states:
-                
-                if s == "gain":
-                    min_copies = 3
-                    max_copies = max_copies
-                elif s== "loss":
-                    min_copies = 1
-                    max_copies = 1
-                else:
-                    min_copies = 2
-                    max_copies = 2
-
-                like1_dict[s] = sparse_matrix(compute_like1(variant_count_data, min_copies, max_copies,  alpha, coeff_array))
 
         var= sparse_matrix(pd.Series(variant_count_data['var'].to_numpy(), index=variant_count_data.index))
     
@@ -395,7 +326,6 @@ class Phertilizer:
                         total,
                         like0,
                         like1_marg,
-                        #bin_count_data,
                         embedding,
                         like1_dict,
                         copy_distance,
@@ -406,6 +336,14 @@ class Phertilizer:
     
 
     def save_embedding(self, fname):
+        '''saves the coordinates of the umap embedding to a files
+
+        Parameters
+        -------
+        fname : str
+         the filename where the embedding should be saves
+
+        '''
         emb_dat = self.data.read_depth
 
         cells = self.data.cell_lookup.sort_index().values.reshape(-1,1)
@@ -430,14 +368,12 @@ class Phertilizer:
 
 
 
+
     def phertilize(self, 
-                    min_cell =200, 
-                    min_snvs = 200,
                     max_iterations =10, 
                     starts =3,
                     seed=1026, 
-                    radius=0.8, 
-                    npass=1,
+                    radius=0.975, 
                     gamma=0.95,
                     d=7,
                     use_copy_kernel=False,
@@ -447,13 +383,6 @@ class Phertilizer:
 
         Parameters
         ----------
-        min_cell : int
-            the minimum number of cells a leaf can contain to perform a tree operation
-            (default : 200)
-        
-        min_snvs : int 
-            the minimum number of cells a leaf can contain to perform a tree operation
-            (default : 200)
         
         max_iterations : int
             the maximum number of iterations for each tree operation if convergence is not met
@@ -468,9 +397,6 @@ class Phertilizer:
         radius : float
             a parameter for determining similarity of rdr(bin_count) data between cells (default 0.5)
         
-        npass : int
-            a parameter to determine the number of clustering heuristic tests to pass to
-            return accept the result of a tree operation (default: 1)
 
         Returns
         -------
@@ -489,36 +415,16 @@ class Phertilizer:
         minobs = power_calc(d, gamma, 6, Nmax)
         self.params = Params()
         self.rng = np.random.default_rng(seed)
-        n = len(self.cells)
-        if type(min_cell) == float:
-          
-            lamb = int(min_cell*n)
-          
-        else:
-            lamb = min_cell
-        
-        m= len(self.muts)
-        if type(min_snvs) == float:
-    
-            tau = int(min_snvs*m)
-          
-        else:
-            tau = min_snvs
+  
 
-        #TODO: add as input parameters
-        spectral_gap = 0.05
-        jump_percentage = 0.075
-        self.params = Params(lamb, 
-                            tau, 
-                            starts, 
+
+        self.params = Params(starts, 
                             max_iterations, 
-                            spectral_gap, 
-                            jump_percentage, 
                             radius, 
-                            npass,
                             minobs,
                             seed,
-                            use_copy_kernel)
+                            use_copy_kernel,
+                            post_process)
    
 
         seed_list = deque()
@@ -551,7 +457,6 @@ class Phertilizer:
             optimal_tree =IdentityTree(self.cells, self.muts)
   
         if post_process:
-        # if False:  
             print("Post-processing...")
             loglike = optimal_tree.post_process(self.data)# 0.1, 20)
         
@@ -573,8 +478,7 @@ class Phertilizer:
         '''
         
         key = 0
-        # sprout_list = [  self.sprout_linear, self.sprout_branching]
-        # sprout_list = [ self.sprout_linear]
+    
         while len(seed_list) > 0:
             # if key > 0:
             #     break
@@ -589,23 +493,17 @@ class Phertilizer:
          
             if curr_seed.has_linear():
                 sprout_list = [self.sprout_branching] 
-                # print(curr_seed.linear_tree)
+ 
                 self.mapping_list[key].append(curr_seed.linear_tree)
 
             elif curr_seed.has_branching():
                 sprout_list = [self.sprout_linear]
-                # print(curr_seed.branching_tree)
                 self.mapping_list[key].append(curr_seed.branching_tree)
             
             else:
                 sprout_list =[ self.sprout_linear, self.sprout_branching]
 
-            # if key == 0:
-            #     sprout_list =[ self.sprout_linear]
-
-          
-            # if len(curr_seed.cells) < 2*self.params.lamb or len(curr_seed.muts) < 2*self.params.tau:
-            #     continue
+      
             curr_seed.strip(self.data.var)
             nobs = curr_seed.count_obs(self.data.total)
            
@@ -628,28 +526,18 @@ class Phertilizer:
 
                 if tree is not None:
                     
-                    # if tree.is_valid(self.params.lamb, self.params.tau):
+        
                     print("\nSprouted tree:")
                     print(tree)
                     self.mapping_list[key].append(tree)
                     seed_list += new_seeds
                 else:
                     print("No inferred elementary tree.")
-              
-                    # new_seeds = tree.get_seeds(curr_seed.ancestral_muts)
-                    # for seed in new_seeds:
-                    #     seed_list.append(seed)
-                    # else:
-                    #     print("Inferred elementary tree not valid!")
-                        
-     
-                    
+                 
            
             print(f"Number of subproblems remaining: {len(seed_list)}")
             key += 1
-            # if key > 1:
-            #     break
-
+ 
 
       
     def lookup_seed_key(self, seed):
@@ -684,9 +572,6 @@ class Phertilizer:
             a ClonalTreeList object containing all candidate clonal trees
         '''
 
-        
-
-
         pre_proc_list = ClonalTreeList()
         cand_trees = ClonalTreeList()
         trees = self.mapping_list[0]
@@ -704,7 +589,7 @@ class Phertilizer:
                     leaf_nodes = curr_tree.get_leaves()
                     for l in leaf_nodes:
                         anc_muts = curr_tree.get_ancestral_muts(l)
-                        seed = curr_tree.get_seed_by_node(l, self.params.lamb, self.params.tau, anc_muts)
+                        seed = curr_tree.get_seed_by_node(l)
                     
                         if seed is None:
                             continue
@@ -749,7 +634,6 @@ class Phertilizer:
         
         #perform a branching split
         br_split = bs.Branching_split(self.data,
-                                      self.cna_genotype_mode,
                                       seed,
                                       self.rng,  
                                       self.params,
@@ -758,8 +642,6 @@ class Phertilizer:
         
         branching_tree = br_split.sprout()
         if branching_tree is not None:
-
-
             seed_list = branching_tree.get_seeds(np.empty(shape=0, dtype=int))
         else:
             seed_list = []
@@ -782,17 +664,16 @@ class Phertilizer:
         '''
         print("\nSprouting a linear tree...")    
         lin_split =ls.Linear_split(     self.data,
-                                        self.cna_genotype_mode,
                                         seed,
                                         self.rng,  
                                         self.params,
                                     )
-        ancestral_muts = np.empty(shape=0, dtype=int)
+
         tree_list, best_tree = lin_split.sprout()
 
         num_trees = tree_list.size()
         if best_tree is not None:
-            seed_list =best_tree.get_seeds(ancestral_muts)
+            seed_list =best_tree.get_seeds()
             seed.set_linear(best_tree)
             # print(best_tree)
             # print(num_trees)

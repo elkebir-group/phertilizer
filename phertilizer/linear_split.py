@@ -103,13 +103,12 @@ class Linear_split():
 
     def __init__(self,
                  data,
-                 cna_genotype_mode,
                  seed,
                  rng,
                  params
                  ):
 
-        self.cna_genotype_mode = cna_genotype_mode
+   
         self.rng = rng
         self.np_rng= np.random.RandomState(params.seed)
         self.like0 = data.like0
@@ -234,9 +233,9 @@ class Linear_split():
 
         num_obs = np.count_nonzero(self.total[np.ix_(cellsA, muts)],axis=0)
         avg_obs = num_obs.mean()
-        if avg_obs <= 5:
+        if avg_obs <= 2:
             return muts, None
-        # muts = np.setdiff1d(muts, na_muts)
+            
         like0_array = self.like0[np.ix_(cellsA, muts)].mean(axis=0)
         like1_array = self.like1[np.ix_(cellsA, muts)].mean(axis=0)
 
@@ -247,43 +246,7 @@ class Linear_split():
 
         return mutsA, mutsB
 
-    def mut_assignment_with_cna_events(self, cellsA, muts, eA):
-        """ Updates the assignment of mutations to mutsA or mutsB by comparing 
-        the likelihood based off the cells currently assigned to cellsA/
-
-        :param cellsA the set of Ca cells to use to find Mb
-        :return: numpy arrays contain the mutation ids in mutsA and mutsB
-        """
-
-        like0_array = self.like0[np.ix_(cellsA, muts)].sum(axis=0)
-        like0_series = pd.Series(like0_array, index=muts).sort_index()
-        all_snvs = []
-        like1_arrays = []
-        for s in self.states:
-            bins = eA[s]  # find mutations in bins assigned to state s
-            snvs = self.snv_bin_mapping[self.snv_bin_mapping.isin(
-                bins)].index.to_numpy()
-            snvs = np.intersect1d(muts, snvs)
-            all_snvs.append(snvs)
-            like1 = self.like1_dict[s]
-            like1_array = like1[np.ix_(cellsA, snvs)].sum(axis=0)
-            like1_arrays.append(like1_array)
-
-        # find SNVs mapped to excluded bins
-        all_snvs = np.concatenate(all_snvs)
-        missing_snvs = np.setdiff1d(muts, all_snvs)
-        like1_array = self.like1_dict["neutral"][np.ix_(
-            cellsA, missing_snvs)].sum(axis=0)
-        like1_arrays.append(like1_array)
-        all_snvs = np.concatenate([all_snvs, missing_snvs])
-
-        like1_series = pd.Series(np.concatenate(
-            like1_arrays), all_snvs).sort_index()
-
-        mutsB = like0_series[like0_series > like1_series].index.to_numpy()
-        mutsA = np.setdiff1d(muts, mutsB)
-
-        return mutsA, mutsB
+    
 
     def create_affinity(self, cells, mutsB=None):
         '''   computes the edge weights w_ii' for the edge weights for the input graph to normalized min cut
@@ -314,11 +277,6 @@ class Linear_split():
             mb_tot_count = np.count_nonzero(
                 self.total[np.ix_(cells, mutsB)], axis=1).reshape(-1)
             
-            # mb_mut_count = np.sum(
-            #     self.var[np.ix_(cells, mutsB)], axis=1).reshape(-1)
-            # mb_tot_count = np.sum(
-            #     self.total[np.ix_(cells, mutsB)], axis=1).reshape(-1)
-
 
             cdist = self.copy_distance_matrix.copy()
             tmb = mb_mut_count/mb_tot_count
@@ -329,8 +287,7 @@ class Linear_split():
             d_mat = squareform(pdist(tmb, metric="euclidean"))
 
             kernel = np.exp(-1*d_mat/snv_kernel_width(d_mat))
-            # kw = snv_kernel_width(d_mat)
-            # kernel = np.exp(-1*np.power(d_mat/kw,2))
+      
             mb_mut_count_series = pd.Series(
                 mb_mut_count.reshape(-1), index=cells)
 
@@ -340,12 +297,8 @@ class Linear_split():
             if self.use_copy_kernel:
 
                 copy_kernel = np.exp(-1*c_mat/cnv_kernel_width(c_mat))
-                # copy_kernel = np.exp(-1*np.power(c_mat/cnv_kernel_width(c_mat),2))
                 copy_kernel[c_mat > r] = 0
                 kernel = np.multiply(kernel, copy_kernel)
-
-            # else:
-            #     print("Using SNV kernel only")
 
             return kernel, mb_mut_count_series
 
@@ -494,7 +447,7 @@ class Linear_split():
           
 
             mutsA, mutsB = self.random_weighted_init_array(cells, muts, p)
-            # mutsA, mutsB = self.random_init_array( muts, p)
+        
             oldCellsA = cells
             for j in range(self.iterations):
                 cellsA, cellsB, stats = self.cluster_cells(cells, mutsB)
@@ -503,39 +456,28 @@ class Linear_split():
                 else:
                     oldCellsA = cellsA
 
-                eA, eB = self.assign_cna_events(cellsA, cellsB)
-
+         
                 mutsA, mutsB= self.mut_assignment(cellsA, muts)
-                # muts = np.setdiff1d(muts, na_muts)
-
-                # mutsA, mutsB = self.cluster_muts(cellsA,cellsB, muts)
+         
 
             print(f"number of iterations: {j}")
             if len(cellsA) >0 and len(cellsB) > 0:
-            # if len(cellsA) > self.lamb and len(mutsA) > self.tau and len(cellsB) > 5:
-                # if stats['norm_count_diff'] > 2:#   and stats['ca_mb_count'] < 2:
-                #check_stats(stats, self.jump_percentage, self.spectral_gap, self.npass) and :
-
+    
                     cellsB_tree = np.setdiff1d(self.cells, cellsA)
-                    # eA, eB = self.assign_cna_events(cellsA, cellsB_tree)
-
-                    # mutsA, mutsB_tree = self.mut_assignment(cellsA, self.muts)
+                  
                     mutsB_tree = np.setdiff1d(self.muts, mutsA)
                     lt = LinearTree(cellsA, cellsB_tree,
-                                    mutsA, mutsB_tree, eA, eB)
-                    # lt.post_process()
+                                    mutsA, mutsB_tree)
+              
               
                     f1, f2, f3 = self.check_metrics(cellsA, cellsB_tree, mutsA, mutsB_tree)
                     if f1 <= 0.075 and f2 >= 0.15 and f3 >= 0.9:
-                        # print(f1)
-                    # lt.post_process(self.data)
-                        # print(lt)
+              
                         internal_tree_list.insert(lt)
 
                         norm_list.append(self.compute_norm_likelihood(
                             cellsA, cellsB, mutsA, mutsB_tree))
-                    else:
-                        print('here')
+           
 
             self.use_copy_kernel = not self.use_copy_kernel
         best_tree = self.best_norm_like(internal_tree_list, norm_list)
@@ -818,35 +760,12 @@ class Linear_split():
       
         """
 
-        # var_counts_by_snv= self.var[np.ix_(self.cells, self.muts)].sum(axis=0)
-        # bad_snvs = self.muts[var_counts_by_snv==0]
-        # self.muts = np.setdiff1d(self.muts, bad_snvs)
-        
-        # var_counts_by_cells = self.var[np.ix_(self.cells,self.muts)].sum(axis=1)
-        # bad_cells = self.cells[var_counts_by_cells ==0]
-        # self.cells = np.setdiff1d(self.cells, bad_cells)
-
-        #check the average number of observations per cell and snv
-        # cell_mean_val = check_obs(self.cells, self.muts, self.total, axis=1)
-        # print(cell_mean_val)
-        # snv_mean_val = check_obs(self.cells, self.muts, self.total, axis=0)
-        # print(snv_mean_val)
-
-        # if cell_mean_val <=  12 or snv_mean_val <= 12:
-        #     return None
-        
-        # seed_obs = check_obs(self.cells, self.muts, self.total)
-        # if seed_obs < self.params.minobs:
-        #     return None
-
 
         self.norm_like_list = []
 
         self.cand_splits = ClonalTreeList()
 
-        self.run(self.cells, self.muts, p=0.15)
-        # if self.cand_splits.has_trees():
-        #     best_tree, _ = self.cand_splits.find_best_tree(self.data)
+        self.run(self.cells, self.muts, p=0.5)
 
         if self.cand_splits.size() == 0:
             return self.cand_splits, None
@@ -854,10 +773,5 @@ class Linear_split():
         best_tree_index = np.argmax(np.array(self.norm_like_list))
 
         best_tree_like = self.cand_splits.index_tree(best_tree_index)
-        # cellsA = best_tree_like.cell_mapping[0][0]
-        # best_tree_like.cell_mapping[0][0]=np.union1d(bad_cells, cellsA)
-        # mutsA =  best_tree_like.mut_mapping[0]
-        # best_tree_like.mut_mapping[0] = np.union1d(bad_snvs, mutsA)
 
-        # return best_tree_like
         return self.cand_splits, best_tree_like

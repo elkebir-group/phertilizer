@@ -115,6 +115,10 @@ class Branching_split():
         self.iterations = params.iterations
         self.use_copy_kernel = params.use_copy_kernel
         self.radius = params.radius
+        self.params =params 
+    
+    low_cmb: float= 0.075
+    high_cmb: float=0.15
 
 
     def random_init(self, arr):
@@ -287,7 +291,7 @@ class Branching_split():
             cellsA = cells1
             cellsB = cells2
    
-        return cellsA, cellsB, stats
+        return cellsA, cellsB
 
     def mut_assignment(self, cellsA, cellsB):
         '''    returns three arrays (mutsA, mutsB, mutsC) based on the maximum likelihood with the node assignment of each SNV for 
@@ -310,10 +314,13 @@ class Branching_split():
              the SNV indices in the parent
 
         '''
-        num_obsA = np.count_nonzero(self.total[np.ix_(cellsA, self.muts)],axis=0).mean()
-        num_obsB = np.count_nonzero(self.total[np.ix_(cellsB, self.muts)],axis=0).mean()
 
-        if num_obsA <= 2 or num_obsB <=2:
+        #check to make sure we have enough observations to make a good assignment
+        num_obsA = np.count_nonzero(self.total[np.ix_(cellsA, self.muts)],axis=0)
+        num_obsB = np.count_nonzero(self.total[np.ix_(cellsB, self.muts)],axis=0)
+        obsA = np.quantile(num_obsA, 0.75)
+        obsB = np.quantile(num_obsB, 0.75)
+        if obsA <= self.params.obs_needed_to_assign or obsB <=self.params.obs_needed_to_assign:
             mutsA = np.empty(shape=0, dtype=int)
             mutsB = np.empty(shape=0, dtype=int)
             mutsC = self.muts
@@ -357,25 +364,23 @@ class Branching_split():
         mutsA, mutsB, mutsC = self.random_init(muts)
         oldA = np.empty(shape=0, dtype=int)
         for j in range(self.iterations):
-            cellsA, cellsB, stats = self.cluster_cells(mutsA, mutsB, cells)
+            cellsA, cellsB = self.cluster_cells(mutsA, mutsB, cells)
 
             if len(cellsB) == 0 or len(cellsA) == 0 or np.array_equal(np.sort(cellsA), np.sort(oldA)):
                 break
             else:
                 oldA = cellsA
 
-           
 
             mutsA, mutsB, mutsC = self.mut_assignment(cellsA, cellsB)
 
-        # if (len(cellsA) > self.lamb and len(cellsB) > 1) or (len(cellsB) > self.lamb and len(cellsA) > 1):
         if len(cellsA) > 0 and len(cellsB) > 0:
             norm_like = self.compute_norm_likelihood(cellsA, cellsB, mutsA, mutsB, mutsC)
             cand_tree= BranchingTree(
                             cellsA, cellsB, mutsA, mutsB, mutsC)
     
             f1, f2, f3, f4, f5  = self.check_metrics(cellsA, cellsB, mutsA, mutsB, mutsC)
-            if f1 <= 0.075 and f2 <= 0.075 and f3 >= 0.15 and f4 >=0.8 and f5 >= 0.8:
+            if f1 <= self.params.low_cmb and f2 <= self.params.low_cmb and f3 >= self.params.high_cmb and f4 >= self.params.prop_reads and f5 >= self.params.prop_reads:
                 if norm_like > self.best_norm_like:
                     self.best_norm_like = norm_like
                     self.best_tree = cand_tree
@@ -413,13 +418,13 @@ class Branching_split():
             self.data.total[np.ix_(ca, mb)], axis=1)
                 
         #should be high ~ 0.9 percent
-        feat4 = np.sum(feat4_total > 3)/len(ca)
+        feat4 = np.sum(feat4_total >= self.params.min_num_reads)/len(ca)
 
         feat5_total = np.count_nonzero(
             self.data.total[np.ix_(cb, ma)], axis=1)
         
         #should be high ~ 0.9 percent
-        feat5 = np.sum(feat5_total > 3)/len(cb)
+        feat5 = np.sum(feat5_total >= self.params.min_num_reads)/len(cb)
 
         return feat1, feat2, feat3, feat4, feat5
 

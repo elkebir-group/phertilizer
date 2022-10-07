@@ -130,6 +130,7 @@ class Linear_split():
         self.iterations = params.iterations
         self.starts = params.starts
         self.use_copy_kernel = params.use_copy_kernel
+        self.params = params 
     
 
         self.copy_distance_matrix = data.copy_distance
@@ -223,8 +224,8 @@ class Linear_split():
         '''
 
         num_obs = np.count_nonzero(self.total[np.ix_(cellsA, muts)],axis=0)
-        avg_obs = num_obs.mean()
-        if avg_obs <= 2:
+        obs = np.quantile(num_obs, 0.75)
+        if obs <= self.params.obs_needed_to_assign:
             return muts, None
             
         like0_array = self.like0[np.ix_(cellsA, muts)].mean(axis=0)
@@ -344,7 +345,7 @@ class Linear_split():
             cellsA, cellsB = cells2, cells1
             logging.info(
                 f"Mb Count a: {norm_mut_count2} Mb Count b: {norm_mut_count1}")
-        return cellsA, cellsB, stats
+        return cellsA, cellsB 
 
 
     def check_metrics(self, ca,cb, ma, mb):
@@ -368,14 +369,14 @@ class Linear_split():
         feat3_total = np.count_nonzero(
             self.data.total[np.ix_(cb, ma)], axis=1)
         
-        feat3 = np.sum(feat3_total > 3)/len(cb)
+        feat3 = np.sum(feat3_total > self.params.min_num_reads)/len(cb)
         
         feat4_total = np.count_nonzero(
             self.data.total[np.ix_(ca, mb)], axis=1)
         #should be high ~ 0.9 percent
 
 
-        feat4 = np.sum(feat4_total > 3)/len(ca)
+        feat4 = np.sum(feat4_total >= self.params.min_num_reads)/len(ca)
 
         return feat1, feat2, feat3, feat4
 
@@ -406,13 +407,13 @@ class Linear_split():
 
         for s in range(self.starts):
 
-          
 
             mutsA, mutsB = self.random_weighted_init_array(cells, muts, p)
         
             oldCellsA = cells
             for j in range(self.iterations):
-                cellsA, cellsB, stats = self.cluster_cells(cells, mutsB)
+                cellsA, cellsB = self.cluster_cells(cells, mutsB)
+                
                 if len(cellsB) == 0 or np.array_equal(np.sort(cellsA), np.sort(oldCellsA)):
                     break
                 else:
@@ -421,7 +422,6 @@ class Linear_split():
                 mutsA, mutsB= self.mut_assignment(cellsA, muts)
          
 
-            print(f"number of iterations: {j}")
             if len(cellsA) >0 and len(cellsB) > 0:
     
                     cellsB_tree = np.setdiff1d(self.cells, cellsA)
@@ -432,7 +432,7 @@ class Linear_split():
               
               
                     f1, f2, f3 , f4= self.check_metrics(cellsA, cellsB_tree, mutsA, mutsB_tree)
-                    if f1 <= 0.075 and f2 >= 0.15 and f3 >= 0.8 and f4 >=0.8:
+                    if f1 <= self.params.low_cmb and f2 >= self.params.high_cmb and f3 >= self.params.prop_reads and f4 >= self.params.prop_reads:
               
                         internal_tree_list.insert(lt)
 
@@ -507,12 +507,7 @@ class Linear_split():
 
         return norm_like
     
-    # def compute_norm_likelihood(self,cellsA, cellsB, mutsA, mutsB):
-    #     var_like = self.compute_norm_var_likelihood(cellsA, cellsB, mutsA, mutsB)
-    #     rd_like =self.read_depth_likelihood_by_node(cellsA, cellsB)
-    #     total_like = var_like + rd_like
-    #     like = total_like.sum()
-    #     return like
+
     def compute_norm_var_likelihood(self, cellsA, cellsB, mutsA, mutsB):
         '''    calculated the normalized variant log likelihood for the 
                 given partition
@@ -552,134 +547,6 @@ class Linear_split():
 
         return var_like
 
-    def read_depth_likelihood_by_node(self, cellsA, cellsB):
-        likes = []
-        for cells in [cellsA, cellsB]:
-            cluster_data = self.data.read_depth[cells,:]
-            bin_means = cluster_data.mean(axis=0)
-            bin_variance = np.diag(np.var(cluster_data, axis=0))
-            mv_normal = multivariate_normal(bin_means, bin_variance,allow_singular=True)
-            cell_likelihood =mv_normal.logpdf(cluster_data)
-            cell_like_series = pd.Series(cell_likelihood, index=cells)
-            likes.append(cell_like_series)
-        cell_like_series = pd.concat(likes)
-
-        return cell_like_series
-
-    def cluster_muts(self, cellsA, cellsB, muts):
-        '''   clusters an input set of cells into cellsA and cellsB using normalized min cut on a graph with edge
-        weights mixing SNV and CNA features
-
-        Parameters
-        ----------
-        mutsA : np.array
-            the current set of mutsA to include in the SNV features
-        mutsB : np.array
-            the current set of mutsB to include in the SNV features
-        cells : np.array
-            the set of cell indices to cluster into two partitions
-
-
-        Returns
-        -------
-        cellsA : np.array
-            the cell indices of the first cluster
-        cellsB : n.array
-            the cell indices of the second cluster
-        stats : dict
-            a dictionary containing the values of the stopping heuristics
-
-        '''
-
-
-        W, cell_features, muts = self.create_affinity_muts(cellsA,cellsB, muts)
-        if W is None:
-            return muts, np.empty(shape=0, dtype=int), None
-
-        if np.any(np.isnan(W)):
-            print("Terminating mutation clustering due to NANs in affinity matrix")
-            return muts, np.empty(shape=0, dtype=int), None
-
-        clusters, y_vals, labels, stats = normalizedMinCut(W, muts, self.np_rng)
-
-        muts1, muts2 = clusters
-
-        if cell_features is not None:
-            avg_ca_muts1= self.calc_feat(cellsA, muts1, axis=0).mean()
-            avg_ca_muts2= self.calc_feat(cellsA, muts2, axis=0).mean()
-
-            if avg_ca_muts1 <= avg_ca_muts2:
-                mutsA = muts1
-                mutsB = muts2
-            else:
-                mutsB = muts1
-                mutsA = muts2
-        else:
-            mutsA= muts1
-            cellsB = muts2
-   
-
-        return mutsA, mutsB
-
-
-    def create_affinity_muts(self,  cellsA, cellsB, muts):
-        '''   computes the edge weights w_ii' for the edge weights for the input graph to normalized min cut
-
-        Parameters
-        ----------
-        mutsA : np.array
-            the current set of mutsA to include in the SNV features
-        mutsB : np.array
-            the current set of mutsB to include in the SNV features
-        cells : np.array
-            the set of cell indices to represent nodes of the graph
-
-
-        Returns
-        -------
-        kernel : np.array
-            a cell x cell matrix containing the edge weights of the graph
-        mut_features_df : pd.Dataframe
-            a pandas dataframe containing the calculated mutsA and mutsB features for each cell
- 
-
-        '''
-      
-
-        if len(cellsA) > 0 and len(cellsB) > 0:
-            vaf_ca = self.calc_feat(cellsA, muts, axis=0)
-
-
-            # vaf_cb = self.calc_feat(cellsB, muts, axis=0)
-        
-            muts = muts[np.logical_not(np.isnan(vaf_ca.reshape(-1)))]
-
-            vaf_ca = vaf_ca[np.logical_not(np.isnan(vaf_ca.reshape(-1))),:]
-
-      
-
-            # cell_features = np.hstack([vaf_ca, vaf_cb])
-            cell_features = vaf_ca
-            # copy_dist_mat = self.data.copy_distance.copy()
-
-          
-
-            # if we aren't able to impute mut features for cells, then we can't cluster
-            if np.any(np.isnan(cell_features)):
-                return None, None
-
-            cell_features_df = pd.DataFrame(cell_features, muts)
-
-            d_mat = squareform(pdist(cell_features, metric="euclidean"))
-
-            kw = snv_kernel_width(d_mat)
-            kernel = np.exp(-1*d_mat/kw)
-
-
-
-            return kernel, cell_features_df, muts
-        else:
-            return None, None
     def calc_feat(self, cells, muts, axis=1):
         ''' calculates the binary tumor mutational burden (tmb) of the given SNVs for each cell
 
@@ -733,3 +600,133 @@ class Linear_split():
         best_tree_like = self.cand_splits.index_tree(best_tree_index)
 
         return self.cand_splits, best_tree_like
+
+
+    # def read_depth_likelihood_by_node(self, cellsA, cellsB):
+    #     likes = []
+    #     for cells in [cellsA, cellsB]:
+    #         cluster_data = self.data.read_depth[cells,:]
+    #         bin_means = cluster_data.mean(axis=0)
+    #         bin_variance = np.diag(np.var(cluster_data, axis=0))
+    #         mv_normal = multivariate_normal(bin_means, bin_variance,allow_singular=True)
+    #         cell_likelihood =mv_normal.logpdf(cluster_data)
+    #         cell_like_series = pd.Series(cell_likelihood, index=cells)
+    #         likes.append(cell_like_series)
+    #     cell_like_series = pd.concat(likes)
+
+    #     return cell_like_series
+
+    # def cluster_muts(self, cellsA, cellsB, muts):
+    #     '''   clusters an input set of cells into cellsA and cellsB using normalized min cut on a graph with edge
+    #     weights mixing SNV and CNA features
+
+    #     Parameters
+    #     ----------
+    #     mutsA : np.array
+    #         the current set of mutsA to include in the SNV features
+    #     mutsB : np.array
+    #         the current set of mutsB to include in the SNV features
+    #     cells : np.array
+    #         the set of cell indices to cluster into two partitions
+
+
+    #     Returns
+    #     -------
+    #     cellsA : np.array
+    #         the cell indices of the first cluster
+    #     cellsB : n.array
+    #         the cell indices of the second cluster
+    #     stats : dict
+    #         a dictionary containing the values of the stopping heuristics
+
+    #     '''
+
+
+    #     W, cell_features, muts = self.create_affinity_muts(cellsA,cellsB, muts)
+    #     if W is None:
+    #         return muts, np.empty(shape=0, dtype=int), None
+
+    #     if np.any(np.isnan(W)):
+    #         print("Terminating mutation clustering due to NANs in affinity matrix")
+    #         return muts, np.empty(shape=0, dtype=int), None
+
+    #     clusters, y_vals, labels, stats = normalizedMinCut(W, muts, self.np_rng)
+
+    #     muts1, muts2 = clusters
+
+    #     if cell_features is not None:
+    #         avg_ca_muts1= self.calc_feat(cellsA, muts1, axis=0).mean()
+    #         avg_ca_muts2= self.calc_feat(cellsA, muts2, axis=0).mean()
+
+    #         if avg_ca_muts1 <= avg_ca_muts2:
+    #             mutsA = muts1
+    #             mutsB = muts2
+    #         else:
+    #             mutsB = muts1
+    #             mutsA = muts2
+    #     else:
+    #         mutsA= muts1
+    #         cellsB = muts2
+   
+
+    #     return mutsA, mutsB
+
+
+    # def create_affinity_muts(self,  cellsA, cellsB, muts):
+    #     '''   computes the edge weights w_ii' for the edge weights for the input graph to normalized min cut
+
+    #     Parameters
+    #     ----------
+    #     mutsA : np.array
+    #         the current set of mutsA to include in the SNV features
+    #     mutsB : np.array
+    #         the current set of mutsB to include in the SNV features
+    #     cells : np.array
+    #         the set of cell indices to represent nodes of the graph
+
+
+    #     Returns
+    #     -------
+    #     kernel : np.array
+    #         a cell x cell matrix containing the edge weights of the graph
+    #     mut_features_df : pd.Dataframe
+    #         a pandas dataframe containing the calculated mutsA and mutsB features for each cell
+ 
+
+    #     '''
+      
+
+    #     if len(cellsA) > 0 and len(cellsB) > 0:
+    #         vaf_ca = self.calc_feat(cellsA, muts, axis=0)
+
+
+    #         # vaf_cb = self.calc_feat(cellsB, muts, axis=0)
+        
+    #         muts = muts[np.logical_not(np.isnan(vaf_ca.reshape(-1)))]
+
+    #         vaf_ca = vaf_ca[np.logical_not(np.isnan(vaf_ca.reshape(-1))),:]
+
+      
+
+    #         # cell_features = np.hstack([vaf_ca, vaf_cb])
+    #         cell_features = vaf_ca
+    #         # copy_dist_mat = self.data.copy_distance.copy()
+
+          
+
+    #         # if we aren't able to impute mut features for cells, then we can't cluster
+    #         if np.any(np.isnan(cell_features)):
+    #             return None, None
+
+    #         cell_features_df = pd.DataFrame(cell_features, muts)
+
+    #         d_mat = squareform(pdist(cell_features, metric="euclidean"))
+
+    #         kw = snv_kernel_width(d_mat)
+    #         kernel = np.exp(-1*d_mat/kw)
+
+
+
+    #         return kernel, cell_features_df, muts
+    #     else:
+    #         return None, None

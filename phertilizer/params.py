@@ -13,7 +13,7 @@ class Params:
     post_process: bool = True
     prop_reads: float = 0.8
     min_num_reads: int = 3
-    obs_needed_to_assign: int =2
+    obs_needed_to_assign: int =3
     low_cmb: float= 0.075
     high_cmb: float=0.15
 

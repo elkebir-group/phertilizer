@@ -55,7 +55,7 @@ def main(args):
                      max_copies = args.copies,
                     mode = args.mode,
                     dim_reduce = not args.no_umap )
-                    
+
     if args.embedding is not None:
         ph.save_embedding(args.embedding)
 
@@ -232,7 +232,7 @@ def get_options():
 
 #/scratch/data/leah/phertilizer/simulations/phertilizer/recomb_rd/clones7_l0_loh0_p0.01_ck1/s12_n1500_m5000
     base = "/scratch/data/leah/phertilizer"
-    instance= "s12_n2000_m10000_c9_p0.01_cna3_l0_dcl2_dsnv2_dcnv2"
+    instance= "s12_n1000_m10000_c5_p0.01_cna3_l0_dcl2_dsnv2_dcnv2"
     inpath = f"{base}/simulation_study/downsample/{instance}"
     outpath = f"{base}/simulation_study/test"
     # inpath =outpath

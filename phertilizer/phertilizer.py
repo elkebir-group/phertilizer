@@ -123,7 +123,6 @@ def apply_like0_numba(var, total, alpha, coeff):
     assert len(var) == len(total) == n
 
     for i in range(n):
-        # coeff = binomial(total[i], var[i])
         result[i] = binom_pdf(var[i], total[i], alpha, coeff[i])
     return result
 
@@ -508,20 +507,14 @@ class Phertilizer:
                 continue
             
             print("Starting k-clonal tree inference for seed:")
-      
-    
            
             for sprout in sprout_list:
-
-                print("Sprouting seed:")
-                print(curr_seed)
 
                 #perform an elementary tree operation from the given seed
                 tree, new_seeds = sprout(curr_seed)
 
                 if tree is not None:
                     
-        
                     print("\nSprouted tree:")
                     print(tree)
                     self.mapping_list[key].append(tree)
@@ -530,7 +523,7 @@ class Phertilizer:
                     print("No inferred elementary tree.")
                  
            
-            print(f"Number of subproblems remaining: {len(seed_list)}")
+            print(f"\nNumber of subproblems remaining: {len(seed_list)}")
             key += 1
  
 
@@ -625,7 +618,8 @@ class Phertilizer:
             a BranchingTree with the highest likelihood or None is no valid BranchingTree is found
         '''
 
-        print("\nSprouting a branching tree..")  
+        print("\nSprouting a branching tree for seed..") 
+        print(seed) 
         
         #perform a branching split
         br_split = bs.Branching_split(self.data,
@@ -637,7 +631,7 @@ class Phertilizer:
         
         branching_tree = br_split.sprout()
         if branching_tree is not None:
-            seed_list = branching_tree.get_seeds(np.empty(shape=0, dtype=int))
+            seed_list = branching_tree.get_seeds()
         else:
             seed_list = []
 
@@ -657,7 +651,9 @@ class Phertilizer:
         best_tree
             a LinearTree with the highest likelihood or None is no valid LinearTree is found
         '''
-        print("\nSprouting a linear tree...")    
+        print("\nSprouting a linear tree for seed...")  
+        print(seed)
+
         lin_split =ls.Linear_split(     self.data,
                                         seed,
                                         self.rng,  

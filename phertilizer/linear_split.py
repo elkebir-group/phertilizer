@@ -225,8 +225,8 @@ class Linear_split():
 
         num_obs = np.count_nonzero(self.total[np.ix_(cellsA, muts)],axis=0)
         obs = np.quantile(num_obs, 0.75)
-        if obs <= self.params.obs_needed_to_assign:
-            return muts, None
+        if obs < self.params.obs_needed_to_assign:
+            return muts, np.empty(shape=0, dtype=int)
             
         like0_array = self.like0[np.ix_(cellsA, muts)].mean(axis=0)
         like1_array = self.like1[np.ix_(cellsA, muts)].mean(axis=0)
@@ -322,11 +322,11 @@ class Linear_split():
 
         W, mb_count_series = self.create_affinity(cells, mutsB)
         if W is None:
-            return cells, np.empty(shape=0, dtype=int), None
+            return cells, np.empty(shape=0, dtype=int)
 
         if np.any(np.isnan(W)):
             print("Terminating cell clustering due to NANs in affinity matrix")
-            return cells, np.empty(shape=0, dtype=int), None
+            return cells, np.empty(shape=0, dtype=int)
 
         clusters, y_vals, labels, stats = normalizedMinCut(W, cells, self.np_rng)
 
@@ -412,6 +412,8 @@ class Linear_split():
         
             oldCellsA = cells
             for j in range(self.iterations):
+                if mutsB.shape==0:
+                    break
                 cellsA, cellsB = self.cluster_cells(cells, mutsB)
                 
                 if len(cellsB) == 0 or np.array_equal(np.sort(cellsA), np.sort(oldCellsA)):
@@ -419,10 +421,11 @@ class Linear_split():
                 else:
                     oldCellsA = cellsA
 
+
                 mutsA, mutsB= self.mut_assignment(cellsA, muts)
          
 
-            if len(cellsA) >0 and len(cellsB) > 0:
+            if len(cellsA) >0 and len(cellsB) > 0 and len(mutsA) > 0 and len(mutsB) > 0:
     
                     cellsB_tree = np.setdiff1d(self.cells, cellsA)
                   

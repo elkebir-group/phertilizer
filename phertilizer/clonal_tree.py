@@ -228,13 +228,13 @@ class ClonalTree:
             return True
         return False
 
-    def get_seed_by_node(self, node, lamb, tau, anc_muts):
+    def get_seed_by_node(self, node):
 
         if node in list(self.tree.nodes()):
             cells = self.get_tip_cells(node)
             muts = self.get_tip_muts(node)
-            # if len(cells) > lamb and len(muts) > tau:
-            return Seed(cells, muts, anc_muts)
+         
+            return Seed(cells, muts)
 
         return None
 
@@ -875,10 +875,10 @@ class ClonalTree:
         else:
             like1 = data.like1_marg
       
-        snv_bin_mapping = data.snv_bin_mapping
+       
         node_like_dict = {}
         node_likelihood = self.compute_variant_likelihood(
-            node, like0, like1, snv_bin_mapping)
+            node, like0, like1, None)
         node_like_dict["variant"] = node_likelihood
         node_like_dict["total"] = node_likelihood
 

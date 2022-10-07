@@ -320,7 +320,7 @@ class Branching_split():
         num_obsB = np.count_nonzero(self.total[np.ix_(cellsB, self.muts)],axis=0)
         obsA = np.quantile(num_obsA, 0.75)
         obsB = np.quantile(num_obsB, 0.75)
-        if obsA <= self.params.obs_needed_to_assign or obsB <=self.params.obs_needed_to_assign:
+        if obsA < self.params.obs_needed_to_assign or obsB < self.params.obs_needed_to_assign:
             mutsA = np.empty(shape=0, dtype=int)
             mutsB = np.empty(shape=0, dtype=int)
             mutsC = self.muts
@@ -364,9 +364,12 @@ class Branching_split():
         mutsA, mutsB, mutsC = self.random_init(muts)
         oldA = np.empty(shape=0, dtype=int)
         for j in range(self.iterations):
+            if mutsB.shape[0] ==0 or mutsA.shape[0]==0:
+                break
             cellsA, cellsB = self.cluster_cells(mutsA, mutsB, cells)
 
-            if len(cellsB) == 0 or len(cellsA) == 0 or np.array_equal(np.sort(cellsA), np.sort(oldA)):
+            if len(cellsB) == 0 or len(cellsA) == 0 or \
+                np.array_equal(np.sort(cellsA), np.sort(oldA)):
                 break
             else:
                 oldA = cellsA
@@ -374,13 +377,15 @@ class Branching_split():
 
             mutsA, mutsB, mutsC = self.mut_assignment(cellsA, cellsB)
 
-        if len(cellsA) > 0 and len(cellsB) > 0:
+        if len(cellsA) > 0 and len(cellsB) > 0 and len(mutsA) >0 and len(mutsB) > 0:
             norm_like = self.compute_norm_likelihood(cellsA, cellsB, mutsA, mutsB, mutsC)
             cand_tree= BranchingTree(
                             cellsA, cellsB, mutsA, mutsB, mutsC)
     
             f1, f2, f3, f4, f5  = self.check_metrics(cellsA, cellsB, mutsA, mutsB, mutsC)
-            if f1 <= self.params.low_cmb and f2 <= self.params.low_cmb and f3 >= self.params.high_cmb and f4 >= self.params.prop_reads and f5 >= self.params.prop_reads:
+            if f1 <= self.params.low_cmb and f2 <= self.params.low_cmb and \
+                f3 >= self.params.high_cmb and f4 >= self.params.prop_reads and \
+                     f5 >= self.params.prop_reads:
                 if norm_like > self.best_norm_like:
                     self.best_norm_like = norm_like
                     self.best_tree = cand_tree

@@ -664,42 +664,44 @@ class Phertilizer:
 
         num_trees = tree_list.size()
         if best_tree is not None:
-            seed_list =best_tree.get_seeds()
-            seed.set_linear(best_tree)
+            seed_list= best_tree.get_seeds()
+            return best_tree, seed_list
+            # seed_list =best_tree.get_seeds()
+            # seed.set_linear(best_tree)
        
-            if num_trees >= 2:
-                start = num_trees -1
+            # if num_trees >= 2:
+            #     start = num_trees -1
               
-                cA = best_tree.get_tip_cells(0)
-                mA= best_tree.get_tip_muts(0)
+            #     cA = best_tree.get_tip_cells(0)
+            #     mA= best_tree.get_tip_muts(0)
         
-                ca_cells = cA 
-                ma_muts = mA
-                start = start - 1
-                curr_seed = seed_list[0]
+            #     ca_cells = cA 
+            #     ma_muts = mA
+            #     start = start - 1
+            #     curr_seed = seed_list[0]
             
-                while start >= 0:
-                    next_tree= tree_list.index_tree(start)
-                    cA = next_tree.get_tip_cells(0)
-                    mA = next_tree.get_tip_muts(0)
+            #     while start >= 0:
+            #         next_tree= tree_list.index_tree(start)
+            #         cA = next_tree.get_tip_cells(0)
+            #         mA = next_tree.get_tip_muts(0)
     
-                    ca_cells = np.setdiff1d(  cA, ca_cells)
-                    ma_muts = np.setdiff1d( mA, ma_muts)
+            #         ca_cells = np.setdiff1d(  cA, ca_cells)
+            #         ma_muts = np.setdiff1d( mA, ma_muts)
             
-                    next_tree.cell_mapping[0] = {0: ca_cells }
-                    next_tree.mut_mapping[0] = ma_muts
+            #         next_tree.cell_mapping[0] = {0: ca_cells }
+            #         next_tree.mut_mapping[0] = ma_muts
                  
-                    curr_seed.set_linear(next_tree)
-                    ca_cells = cA
-                    ma_muts = mA
+            #         curr_seed.set_linear(next_tree)
+            #         ca_cells = cA
+            #         ma_muts = mA
                    
-                    next_seeds = next_tree.get_seeds()
-                    seed_list += next_seeds
+            #         next_seeds = next_tree.get_seeds()
+            #         seed_list += next_seeds
                     
-                    curr_seed = next_seeds[0]
+            #         curr_seed = next_seeds[0]
                   
             
-                    start = start -1
+            #         start = start -1
         else:
             seed_list = []
 

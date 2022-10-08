@@ -228,8 +228,8 @@ class Linear_split():
         if obs < self.params.obs_needed_to_assign:
             return muts, np.empty(shape=0, dtype=int)
             
-        like0_array = self.like0[np.ix_(cellsA, muts)].mean(axis=0)
-        like1_array = self.like1[np.ix_(cellsA, muts)].mean(axis=0)
+        like0_array = self.like0[np.ix_(cellsA, muts)].sum(axis=0)
+        like1_array = self.like1[np.ix_(cellsA, muts)].sum(axis=0)
 
         mask_pred = np.array(like0_array >= like1_array)
         mutsB = muts[(mask_pred)]
@@ -348,6 +348,13 @@ class Linear_split():
         return cellsA, cellsB 
 
 
+    def check_reads(self, cells, muts, axis):
+        nobs= np.count_nonzero(self.data.total[np.ix_(cells, muts)], axis=axis)
+        obs = np.median(nobs)
+
+        return obs > self.params.nobs_per_cluster
+        #self.params.obs_needed_to_assign
+
     def check_metrics(self, ca,cb, ma, mb):
       
         feat1_var = np.count_nonzero(
@@ -364,21 +371,33 @@ class Linear_split():
 
         #should be high ~> 0.15
         feat2= np.nanmedian((feat2_var/feat2_total))
-
-
-        feat3_total = np.count_nonzero(
-            self.data.total[np.ix_(cb, ma)], axis=1)
         
-        feat3 = np.sum(feat3_total > self.params.min_num_reads)/len(cb)
+        feats = []
+
+        for a in [0,1]:
+            for c in [ca, cb]:
+                for m in [ma, mb]:
+                    feats.append( self.check_reads(c,m,a))
+        feat3 = all(feats)
+    
+
+
+        # feat3_total_muts = np.count_nonzero(
+        #     self.data.total[np.ix_(cb, ma)], axis=1)
         
-        feat4_total = np.count_nonzero(
-            self.data.total[np.ix_(ca, mb)], axis=1)
-        #should be high ~ 0.9 percent
+        # feat3_total_cells = np.count_nonzero(
+        #     self.data.total[np.ix_(cb, ma)], axis=0)
+
+        # feat3 = np.sum(feat3_total > self.params.min_num_reads)/len(cb)
+        
+        # feat4_total = np.count_nonzero(
+        #     self.data.total[np.ix_(ca, mb)], axis=1)
+        # #should be high ~ 0.9 percent
 
 
-        feat4 = np.sum(feat4_total >= self.params.min_num_reads)/len(ca)
+        # feat4 = np.sum(feat4_total >= self.params.min_num_reads)/len(ca)
 
-        return feat1, feat2, feat3, feat4
+        return feat1, feat2, feat3
 
 
 
@@ -403,64 +422,75 @@ class Linear_split():
             return 
         
         internal_tree_list = ClonalTreeList()
+        p = np.linspace(0.05, 0.6, self.starts)
         norm_list = []
+        for u in [0,1]:
+            if u ==0:
+                self.use_copy_kernel = True 
+            else:
+                self.use_copy_kernel =False
 
-        for s in range(self.starts):
+            for s in range(self.starts):
 
 
-            mutsA, mutsB = self.random_weighted_init_array(cells, muts, p)
+                mutsA, mutsB = self.random_weighted_init_array(cells, muts, p[s])
+            
+                oldCellsA = cells
+                for j in range(self.iterations):
+                    if mutsB.shape==0:
+                        break
+                    cellsA, cellsB = self.cluster_cells(cells, mutsB)
+                    
+                    if len(cellsB) == 0 or np.array_equal(np.sort(cellsA), np.sort(oldCellsA)):
+                        break
+                    else:
+                        oldCellsA = cellsA
+
+
+                    mutsA, mutsB= self.mut_assignment(cellsA, muts)
+            
+
+                if len(cellsA) >0 and len(cellsB) > 0 and len(mutsA) > 0 and len(mutsB) > 0:
         
-            oldCellsA = cells
-            for j in range(self.iterations):
-                if mutsB.shape==0:
-                    break
-                cellsA, cellsB = self.cluster_cells(cells, mutsB)
+                        cellsB_tree = np.setdiff1d(self.cells, cellsA)
+                    
+                        mutsB_tree = np.setdiff1d(self.muts, mutsA)
+                        lt = LinearTree(cellsA, cellsB_tree,
+                                        mutsA, mutsB_tree)
                 
-                if len(cellsB) == 0 or np.array_equal(np.sort(cellsA), np.sort(oldCellsA)):
-                    break
-                else:
-                    oldCellsA = cellsA
+                
+                        f1, f2, f3= self.check_metrics(cellsA, cellsB_tree, mutsA, mutsB_tree)
+                        if f1 <= self.params.low_cmb and f2 >= self.params.high_cmb and f3:
+                            # print(lt)
+                            internal_tree_list.insert(lt)
 
+                            norm_list.append(self.compute_norm_likelihood(
+                                cellsA, cellsB, mutsA, mutsB_tree))
+            
 
-                mutsA, mutsB= self.mut_assignment(cellsA, muts)
-         
-
-            if len(cellsA) >0 and len(cellsB) > 0 and len(mutsA) > 0 and len(mutsB) > 0:
-    
-                    cellsB_tree = np.setdiff1d(self.cells, cellsA)
-                  
-                    mutsB_tree = np.setdiff1d(self.muts, mutsA)
-                    lt = LinearTree(cellsA, cellsB_tree,
-                                    mutsA, mutsB_tree)
-              
-              
-                    f1, f2, f3 , f4= self.check_metrics(cellsA, cellsB_tree, mutsA, mutsB_tree)
-                    if f1 <= self.params.low_cmb and f2 >= self.params.high_cmb and f3 >= self.params.prop_reads and f4 >= self.params.prop_reads:
-              
-                        internal_tree_list.insert(lt)
-
-                        norm_list.append(self.compute_norm_likelihood(
-                            cellsA, cellsB, mutsA, mutsB_tree))
-           
-
-            self.use_copy_kernel = not self.use_copy_kernel
+             
         best_tree = self.best_norm_like(internal_tree_list, norm_list)
   
         if best_tree is not None:
-
+            print(best_tree)
        
             like_norm = self.compute_norm_likelihood(best_tree.get_tip_cells(0),
-                                                        best_tree.get_tip_cells(
-                                                            1),
+                                                     np.setdiff1d(self.cells, best_tree.get_tip_cells(0)),
+                                                        # best_tree.get_tip_cells(
+                                                        #     1),
                                                         best_tree.get_tip_muts(
                                                             0),
                                                         best_tree.get_tip_muts(1))
        
             print(f"like norm {like_norm}: parent norm {parent_norm}")
-            if like_norm > parent_norm:
-                self.cand_splits.insert(best_tree)
-                self.norm_like_list.append(like_norm)
-                self.run(best_tree.get_tip_cells(0), best_tree.get_tip_muts(0), p, parent_norm= like_norm)
+            # if like_norm > parent_norm:
+            self.cand_splits.insert(best_tree)
+            self.norm_like_list.append(like_norm)
+            # self.run(best_tree.get_tip_cells(0), best_tree.get_tip_muts(0), p, parent_norm= like_norm)
+            # self.run(best_tree.get_tip_cells(1), best_tree.get_tip_muts(1), p, parent_norm= like_norm)
+            self.run(best_tree.get_tip_cells(0), self.muts, p, parent_norm= like_norm)
+            cb_cells = np.setdiff1d(cells, best_tree.get_tip_cells(0))
+            self.run(cb_cells, self.muts, p, parent_norm= like_norm)
 
         
     
@@ -601,6 +631,7 @@ class Linear_split():
         best_tree_index = np.argmax(np.array(self.norm_like_list))
 
         best_tree_like = self.cand_splits.index_tree(best_tree_index)
+        print(best_tree_like)
 
         return self.cand_splits, best_tree_like
 

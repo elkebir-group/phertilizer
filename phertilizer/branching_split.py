@@ -265,11 +265,11 @@ class Branching_split():
 
         W, mut_features = self.create_affinity(mutsA, mutsB, cells)
         if W is None:
-            return cells, np.empty(shape=0, dtype=int), None
+            return cells, np.empty(shape=0, dtype=int)
 
         if np.any(np.isnan(W)):
             print("Terminating cell clustering due to NANs in affinity matrix")
-            return cells, np.empty(shape=0, dtype=int), None
+            return cells, np.empty(shape=0, dtype=int)
 
         clusters, y_vals, labels, stats = normalizedMinCut(W, cells, self.np_rng)
 
@@ -382,10 +382,10 @@ class Branching_split():
             cand_tree= BranchingTree(
                             cellsA, cellsB, mutsA, mutsB, mutsC)
     
-            f1, f2, f3, f4, f5  = self.check_metrics(cellsA, cellsB, mutsA, mutsB, mutsC)
+            f1, f2, f3, f4  = self.check_metrics(cellsA, cellsB, mutsA, mutsB, mutsC)
             if f1 <= self.params.low_cmb and f2 <= self.params.low_cmb and \
-                f3 >= self.params.high_cmb and f4 >= self.params.prop_reads and \
-                     f5 >= self.params.prop_reads:
+                f3 >= self.params.high_cmb and f4:#and f4 >= self.params.prop_reads and f4:
+                    #  f5 >= self.params.prop_reads:
                 if norm_like > self.best_norm_like:
                     self.best_norm_like = norm_like
                     self.best_tree = cand_tree
@@ -419,20 +419,33 @@ class Branching_split():
             feat3 = 1
 
 
-        feat4_total = np.count_nonzero(
-            self.data.total[np.ix_(ca, mb)], axis=1)
+        # feat4_total = np.count_nonzero(
+        #     self.data.total[np.ix_(ca, mb)], axis=1)
                 
-        #should be high ~ 0.9 percent
-        feat4 = np.sum(feat4_total >= self.params.min_num_reads)/len(ca)
+        # #should be high ~ 0.9 percent
+        # feat4 = np.sum(feat4_total >= self.params.min_num_reads)/len(ca)
 
-        feat5_total = np.count_nonzero(
-            self.data.total[np.ix_(cb, ma)], axis=1)
+        # feat5_total = np.count_nonzero(
+        #     self.data.total[np.ix_(cb, ma)], axis=1)
         
-        #should be high ~ 0.9 percent
-        feat5 = np.sum(feat5_total >= self.params.min_num_reads)/len(cb)
+        # #should be high ~ 0.9 percent
+        # feat5 = np.sum(feat5_total >= self.params.min_num_reads)/len(cb)
 
-        return feat1, feat2, feat3, feat4, feat5
+        feats = []
 
+        for a in [0,1]:
+            for c in [ca, cb]:
+                for m in [ma, mb]:
+                    feats.append( self.check_reads(c,m,a))
+        feat3 = all(feats)
+
+        return feat1, feat2, feat3, feats #feat4, feat5
+
+    def check_reads(self, cells, muts, axis):
+        nobs= np.count_nonzero(self.data.total[np.ix_(cells, muts)], axis=axis)
+        obs = np.median(nobs)
+
+        return obs > self.params.nobs_per_cluster
     def compute_norm_likelihood(self, cellsA, cellsB, mutsA, mutsB, mutsC):
         '''    calculated the normalized variant log likelihood for the 
                 given partition

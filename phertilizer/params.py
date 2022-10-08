@@ -14,8 +14,9 @@ class Params:
     prop_reads: float = 0.8
     min_num_reads: int = 3
     obs_needed_to_assign: int =3
-    low_cmb: float= 0.075
+    low_cmb: float= 0.05
     high_cmb: float=0.15
+    nobs_per_cluster = 4
 
     def __post_init__(self):
         if self.radius > 1:

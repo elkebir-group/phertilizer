@@ -625,10 +625,11 @@ class ClonalTree:
       
   
         for node, y in y_dict.items():
-           node_like =np.dot(y,like1) + np.dot(1-y, like0)
-           if node_like > best_like:
-                best_like = node_like
-                best_clust = node
+            if len(self.mut_mapping[node] >0):
+                node_like =np.dot(y,like1) + np.dot(1-y, like0)
+                if node_like > best_like:
+                    best_like = node_like
+                    best_clust = node
         
         if best_clust != clust:
             if clust >= 0:
@@ -688,31 +689,37 @@ class ClonalTree:
             for s in missing_snvs:
                 c_dict = self.cell_cluster_genotypes(n=ncells)
                 self.reassign_snv(s, c_dict, data)
-
-        # for i in range(iterations):
+        loglikelihood = self.compute_likelihood(data)
+        for i in range(iterations):
             
-        #     c_dict = self.cell_cluster_genotypes(n=ncells)
+            c_dict = self.cell_cluster_genotypes(n=ncells)
+            for n in nodes:
+                if n != self.find_root():
+                    muts = self.find_bad_snvs(data, n,q)
+                
+                    for s in muts:
+                        self.reassign_snv(s, c_dict, data)
+                    # loglikelihood = self.compute_likelihood(data)
+                    # print(f'iteration {i} node: {n} variant {self.variant_likelihood} loglike: {loglikelihood}')
+              
+
+                loglikelihood = self.compute_likelihood(data)
+                print(f'iteration {i} node: {n} variant {self.variant_likelihood} loglike: {loglikelihood}')
+            
+            #check for termination if no improvements are made 
+
+            if prev_loglikelihood == loglikelihood:
+                break
+            else:
+                prev_loglikelihood = loglikelihood
         #     for n in nodes:
         #         if n != self.find_root():
-        #             muts = self.find_bad_snvs(data, n,q)
-                
-        #             for s in muts:
-        #                 self.reassign_snv(s, c_dict, data)
-        #             # loglikelihood = self.compute_likelihood(data)
-        #             # print(f'iteration {i} node: {n} variant {self.variant_likelihood} loglike: {loglikelihood}')
-        #             # cells = self.find_bad_cells(data, n,q)
-        #             # y_dict = self.snv_genotypes(m=nmuts)
-        #             # for c in cells:
-        #             #     self.reassign_cell(c, y_dict,data)
+        #             cells = self.find_bad_cells(data, n,q)
+        #             y_dict = self.snv_genotypes(m=nmuts)
+        #             for c in cells:
+        #                 self.reassign_cell(c, y_dict,data)
 
-        #         loglikelihood = self.compute_likelihood(data)
-        #         print(f'iteration {i} node: {n} variant {self.variant_likelihood} loglike: {loglikelihood}')
-            
-        #     #check for termination if no improvements are made 
-        #     if prev_loglikelihood == loglikelihood:
-        #         break
-        #     else:
-        #         prev_loglikelihood = loglikelihood
+
         
         return loglikelihood
 

@@ -267,6 +267,7 @@ class ClonalTree:
         self.mut_mapping = mm
         self.mut_loss_mapping = ml
         self.event_mapping = em
+        # print(self.find_root())
 
     def merge(self, tree, l):
 

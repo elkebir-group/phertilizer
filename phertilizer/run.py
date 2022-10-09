@@ -61,7 +61,10 @@ def main(args):
             gamma= 0.95,
             d = args.min_obs,
             use_copy_kernel = args.use_copy_kernel,
-            post_process = args.post_process
+            post_process = args.post_process,
+            low_cmb = args.low_cmb,
+            high_cmb = args.high_cmb,
+            nobs_per_cluster =args.nobs_per_cluster
             )
         
         if grow_tree.norm_loglikelihood  > best_like:
@@ -193,10 +196,14 @@ def get_options():
                         help="filename where the umap coordinates should be saved") 
     parser.add_argument("--no-umap", action="store_true",
                         help="flag to indicate that input reads per bin file should Not undergo dimensionality reduction")
-    # parser.add_argument("--data", type=str,
-    #                     help="filename where pickled data should be saved for post-processing")
-    # parser.add_argument("--params", type=str,
-    #                     help="filename where pickled parameters should be save")      
+    parser.add_argument("--low_cmb", type=float, default=0.05)
+    parser.add_argument("--high_cmb", type= float, default=0.15,
+                        help="filename where the umap coordinates should be saved") 
+    parser.add_argument("--nobs_per_cluster", type=int,default=4)
+    parser.add_argument("--data", type=str,
+                        help="filename where pickled data should be saved for post-processing")
+    parser.add_argument("--params", type=str,
+                        help="filename where pickled parameters should be save")      
 
     args = parser.parse_args(None if sys.argv[1:] else ['-h'])
 

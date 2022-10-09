@@ -708,10 +708,10 @@ class ClonalTree:
             
             #check for termination if no improvements are made 
 
-            if prev_loglikelihood == loglikelihood:
-                break
-            else:
-                prev_loglikelihood = loglikelihood
+        #     if prev_loglikelihood == loglikelihood:
+        #         break
+        #     else:
+        #         prev_loglikelihood = loglikelihood
         #     for n in nodes:
         #         if n != self.find_root():
         #             cells = self.find_bad_cells(data, n,q)

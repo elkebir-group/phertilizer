@@ -224,8 +224,8 @@ class Linear_split():
         '''
 
         num_obs = np.count_nonzero(self.total[np.ix_(cellsA, muts)],axis=0)
-        obs = np.quantile(num_obs, 0.75)
-        if obs < self.params.obs_needed_to_assign:
+        obs =np.median(num_obs)
+        if obs < self.params.nobs_per_cluster:
             return muts, np.empty(shape=0, dtype=int)
             
         like0_array = self.like0[np.ix_(cellsA, muts)].sum(axis=0)

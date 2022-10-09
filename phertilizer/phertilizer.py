@@ -371,7 +371,11 @@ class Phertilizer:
                     gamma=0.95,
                     d=7,
                     use_copy_kernel=False,
-                    post_process=False):
+                    post_process=False,
+                    low_cmb = 0.05,
+                    high_cmb = 0.15,
+                    nobs_per_cluster = 4
+                    ):
         '''Recursively enumerates all clonal trees on the given input data and
         identifies the clonal tree with maximum likelihood 
 
@@ -407,7 +411,7 @@ class Phertilizer:
 
         Nmax = check_obs(self.cells, self.muts, self.data.total)
         minobs = power_calc(d, gamma, 6, Nmax)
-        self.params = Params()
+
         self.rng = np.random.default_rng(seed)
   
 
@@ -418,7 +422,11 @@ class Phertilizer:
                             minobs,
                             seed,
                             use_copy_kernel,
-                            post_process)
+                            post_process,
+                            low_cmb,
+                            high_cmb,
+                            nobs_per_cluster
+                            )
    
 
         seed_list = deque()

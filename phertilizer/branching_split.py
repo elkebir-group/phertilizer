@@ -318,9 +318,9 @@ class Branching_split():
         #check to make sure we have enough observations to make a good assignment
         num_obsA = np.count_nonzero(self.total[np.ix_(cellsA, self.muts)],axis=0)
         num_obsB = np.count_nonzero(self.total[np.ix_(cellsB, self.muts)],axis=0)
-        obsA = np.quantile(num_obsA, 0.75)
-        obsB = np.quantile(num_obsB, 0.75)
-        if obsA < self.params.obs_needed_to_assign or obsB < self.params.obs_needed_to_assign:
+        obsA = np.median(num_obsA)
+        obsB = np.median(num_obsB)
+        if obsA < self.params.nobs_per_cluster or obsB < self.params.nobs_per_cluster:
             mutsA = np.empty(shape=0, dtype=int)
             mutsB = np.empty(shape=0, dtype=int)
             mutsC = self.muts

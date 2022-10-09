@@ -35,12 +35,15 @@ def scite_graphviz(tree_graphviz: str, cell_cluster: str=None, mut_cluster: str=
             if 'SNV' in v:
 
                 y = int(v.replace("SNV", ""))
-                mut_mapping[y] = mut_cluster[y]
+                mut_mapping[y] = mut_cluster[y+1]
                 tree.add_edge(x,y)
             else:
                 y = int(v.replace("s", ""))
                 # Need +1 ?
-                cell_mapping[x] = {0 :cell_cluster[y]}
+                if x in cell_mapping:
+                    cell_mapping[x][0] = np.concatenate((cell_mapping[x][0], cell_cluster[y+1]))
+                else:
+                    cell_mapping[x] = {0 :cell_cluster[y+1]}
                 recluster_mapping[y] = x
                 
 
@@ -54,6 +57,29 @@ def scite_graphviz(tree_graphviz: str, cell_cluster: str=None, mut_cluster: str=
             del mut_mapping[-1]
         ct = ClonalTree(tree, cell_mapping, mut_mapping)
         ct.relabel()
+
+        #move cells up to parent node
+        # for key in ct.cell_mapping:
+        #     parent = list(ct.tree.successors(key))[0]
+        #     cells = ct.cell_mapping[key][0]
+        #     if key not in ct.mut_mapping:
+            
+            
+        #         if parent in ct.cell_mapping:
+        #             ct.cell_mapping[parent] = {0: np.concatenate([ct.cell_mapping[parent][0], cells])}
+        #         else:
+        #             ct.cell_mapping[parent] = {0:cells}
+        #         del ct.cell_mapping[key]
+        #     elif len(ct.mut_mapping[key])==0:
+        #         if parent in ct.cell_mapping:
+        #             ct.cell_mapping[parent] = {0: np.concatenate([ct.cell_mapping[parent][0], cells])}
+        #         else:
+        #             ct.cell_mapping[parent] = {0:cells}
+        #         del ct.cell_mapping[key]
+
+                
+
+
 
              
         return ct, recluster_mapping

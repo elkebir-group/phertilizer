@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-#!/usr/bin/env python
-
 import argparse
 import sys
 import pandas as pd
@@ -29,20 +27,9 @@ def main(args):
         bin_count_data = pd.read_table(args.bin_count_data)
 
     print(bin_count_data.head())
-    if args.bin_count_normal is not None:
-        if '.csv' in args.bin_count_normal:
-            bin_count_normal = pd.read_csv(args.bin_count_normal)
 
-        else:
-            bin_count_normal = pd.read_table(args.bin_count_normal)
-    else:
-        bin_count_normal = None
 
-    if args.snv_bin_mapping is not None:
-        snv_bin_mapping = pd.read_csv(args.snv_bin_mapping, names=[
-                                      'mutation_id', 'chr', 'bin'])
-    else:
-        snv_bin_mapping = None
+
 
     print("Input data:")
     print(variant_data.head())
@@ -74,7 +61,10 @@ def main(args):
             gamma= 0.95,
             d = args.min_obs,
             use_copy_kernel = args.use_copy_kernel,
-            post_process = args.post_process
+            post_process = args.post_process,
+            low_cmb = args.low_cmb,
+            high_cmb = args.high_cmb,
+            nobs_per_cluster =args.nobs_per_cluster
             )
         
         if grow_tree.norm_loglikelihood  > best_like:
@@ -159,46 +149,29 @@ def get_options():
                         help="input file for variant and total read counts with unlabled columns: [chr snv cell base var total]")
     parser.add_argument("--bin_count_data", required=True,
                         help="input binned read counts with headers containing bin ids")
-    parser.add_argument("--bin_count_normal",
-                        help="input binned read counts for normal cells with identical bins as the bin count data")
-    parser.add_argument("--snv_bin_mapping",
-                        help="a comma delimited file with unlabeled columns: [snv chr bin]")
     parser.add_argument("-a", "--alpha", type=float, default=0.001,
                         help="per base read error rate")
-    parser.add_argument("--min_cells", type=int, default=100,
-                        help="smallest number of cells required to form a clone")
-    parser.add_argument("--min_snvs", type=int, default=100,
-                        help="smallest number of SNVs required to form a cluster")
-    parser.add_argument("--min_frac", type=float,
-                        help="smallest proportion of total cells(snvs) needed to form a cluster, if min_cells or min_snvs are given, min_frac is ignored")
     parser.add_argument("-j", "--iterations", type=int, default=5,
                         help="maximum number of iterations")
     parser.add_argument("-s", "--starts", type=int, default=3,
                         help="number of restarts")
     parser.add_argument("-d", "--seed", type=int, default=99059,
                         help="seed")
-    parser.add_argument("--npass", type=int, default=1)
     parser.add_argument("--radius", type=float, default=0.5)
     parser.add_argument("-c", "--copies", type=int, default=5,
                         help="max number of copies")
-    parser.add_argument("--neutral_mean",  type=float, default=1.0,
-                        help="center of neutral RDR distribution")
-    parser.add_argument("--neutral_eps",  type=float, default=0.15,
-                        help="cutoff of neutral RDR distribution")
-    parser.add_argument("-m", "--pred-mut",
-                        help="output file for mutation clusters")
-    parser.add_argument("-n", "--pred_cell",
-                        help="output file cell clusters")
     parser.add_argument("--runs", type=int, default=1,
                         help="number of Phertilizer runs")
-    # parser.add_argument("-e", "--pred_event",
-    #                     help="output file cna genotypes")
     parser.add_argument("-g", "--gamma", type=float, default=0.95,
                         help="confidence level for power calculation to determine if there are sufficient observations for inference")
     parser.add_argument("--min_obs", type=int, default=7,
                         help = "lower bound on the minimum number of observations for a partition")
     parser.add_argument("--use_copy_kernel", action="store_true",
                         help="indicator if copy number kernel should be used in cell clustering")
+    parser.add_argument("-m", "--pred-mut",
+                        help="output file for mutation clusters")
+    parser.add_argument("-n", "--pred_cell",
+                        help="output file cell clusters")
     parser.add_argument("--post_process", action="store_true", 
                         help="indicator low support cells and snvs should be placed into tree after inference")
     parser.add_argument("--tree",
@@ -219,14 +192,19 @@ def get_options():
                         help="output file where the likelihood of the best tree should be written")
     parser.add_argument("--mode", choices=["var", "rd"],
                         help="the likelihood phertilizer should use to select the best tree")
-    parser.add_argument("--data", type=str,
-                        help="filename where pickled data should be saved for post-processing")
-    parser.add_argument("--params", type=str,
-                        help="filename where pickled parameters should be save")     
     parser.add_argument("--embedding", type=str,
                         help="filename where the umap coordinates should be saved") 
     parser.add_argument("--no-umap", action="store_true",
                         help="flag to indicate that input reads per bin file should Not undergo dimensionality reduction")
+    parser.add_argument("--low_cmb", type=float, default=0.05)
+    parser.add_argument("--high_cmb", type= float, default=0.15,
+                        help="filename where the umap coordinates should be saved") 
+    parser.add_argument("--nobs_per_cluster", type=int, default=4)
+    parser.add_argument("--data", type=str,
+                        help="filename where pickled data should be saved for post-processing")
+    parser.add_argument("--params", type=str,
+                        help="filename where pickled parameters should be save")      
+
 
     # args = parser.parse_args(None if sys.argv[1:] else ['-h'])
 
@@ -262,9 +240,11 @@ def get_options():
         "--likelihood", f"{outpath}/likelihood.txt",
         "--cell_lookup", f"{outpath}/cell_lookup.csv",
         "--mut_lookup", f"{outpath}/mut_lookup.csv",
-        "--npass", "2",
         "--mode", "rd",
-    #  "--use_copy_kernel",
+        "--low_cmb", "0.04",
+        "--high_cmb", "0.2",
+        "--nobs_per_cluster", "3",
+     "--use_copy_kernel",
      "--embedding",f"{outpath}/embedding.csv",
      "--post_process"
 

@@ -50,13 +50,16 @@ def scite_graphviz(tree_graphviz: str, cell_cluster: str=None, mut_cluster: str=
 
         #dfs search collapsing linear chains
         # collapse_linear(tree, -1, mut_mapping, parent=None)
-        tree.remove_node(-1)
-        if -1 in cell_mapping:
-            del cell_mapping[-1]
-        if -1 in mut_mapping:
-            del mut_mapping[-1]
+        # tree.remove_node(-1)
+        # if -1 in cell_mapping:
+        #     del cell_mapping[-1]
+        # if -1 in mut_mapping:
+        #     del mut_mapping[-1]
         ct = ClonalTree(tree, cell_mapping, mut_mapping)
+        # print(ct)
+  
         ct.relabel()
+        # print(ct)
 
         #move cells up to parent node
         # for key in ct.cell_mapping:
@@ -176,13 +179,13 @@ if __name__ == "__main__":
     # ])
 
 
-    # pth = "/scratch/data/leah/phertilizer/simulations/baseline/scite/clones5_l0_loh0_p0.01_vaf0.05/s16_n5000_m5000"
-    # out_pth = "/scratch/data/leah/phertilizer/simulations/baseline/scite/clones5_l0_loh0_p0.01_vaf0.05/s16_n5000_m5000"
+    # pth = "/scratch/data/leah/phertilizer/sbmclone/s12_n1000_m5000_c9_p0.01_cna3_l0_dcl2_dsnv2_dcnv2/hierarchical"
+    # out_pth = "/scratch/data/leah/phertilizer/test"
     # args = parser.parse_args([
 
-    #     "-T", f"{pth}/scite_ml0.gv",
-    #     "--cell_lookup", f"{pth}/pred_cell.csv",
-    #     "--mut_lookup", f"{pth}/pred_mut.csv",
+    #     "-T", f"{pth}/scite/scite_ml0.gv",
+    #     "--cell_lookup", f"{pth}/sbmclone_cell_lookup.csv",
+    #     "--mut_lookup", f"{pth}/sbmclone_mut_lookup.csv",
     #     "--pred_cell", f"{out_pth}/pred_cell_out.csv",
     #     "--pred_mut", f"{out_pth}/pred_mut_out.csv",
     #     "-t", f"{out_pth}/tree0.txt",
@@ -192,9 +195,9 @@ if __name__ == "__main__":
     
     # ])
     cell_lookup_dat = pd.read_csv(args.cell_lookup)
-    print(cell_lookup_dat.head())
+    # print(cell_lookup_dat.head())
     mut_lookup_dat = pd.read_csv(args.mut_lookup)
-    print(mut_lookup_dat.head())
+    # print(mut_lookup_dat.head())
  
     # if True:
     #     cell_lookup_dat['cluster'] = cell_lookup_dat['cluster']-1

@@ -543,6 +543,8 @@ class ClonalTree:
                 data.total[np.ix_(cells, muts)], axis=1).reshape(-1)
         na_cells = cells[tot_count ==0]
         cells = np.setdiff1d(cells, na_cells)
+        cells= cells.astype(int)
+        muts = muts.astype(int)
         mut_count = np.count_nonzero(
                 data.var[np.ix_(cells, muts)], axis=1).reshape(-1)
         tot_count = np.count_nonzero(
@@ -581,7 +583,8 @@ class ClonalTree:
 
         na_snvs = muts[tot_count ==0]
         muts = np.setdiff1d(muts, na_snvs)
-
+        cells= cells.astype(int)
+        muts = muts.astype(int)
         tot_count = np.count_nonzero(
                 data.total[np.ix_(cells, muts)], axis=0).reshape(-1)
         mut_count = np.count_nonzero(

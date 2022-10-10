@@ -576,8 +576,11 @@ class ClonalTree:
     def find_bad_snvs(self, data, node, q):
         clade = list(nx.dfs_preorder_nodes(self.tree, node))
    
+
         cells = np.concatenate([self.cell_mapping[c][0] for c in clade])
         muts = self.mut_mapping[node]
+        cells= cells.astype(int)
+        muts = muts.astype(int)
         tot_count = np.count_nonzero(
                 data.total[np.ix_(cells, muts)], axis=0).reshape(-1)
 

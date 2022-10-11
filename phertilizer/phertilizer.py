@@ -649,7 +649,6 @@ class Phertilizer:
         
         #perform a branching split
         br_split = bs.Branching_split(self.data,
-                                      self.cna_genotype_mode,
                                       seed,
                                       self.rng,  
                                       self.params,
@@ -682,7 +681,6 @@ class Phertilizer:
         '''
         print("\nSprouting a linear tree...")    
         lin_split =ls.Linear_split(     self.data,
-                                        self.cna_genotype_mode,
                                         seed,
                                         self.rng,  
                                         self.params,

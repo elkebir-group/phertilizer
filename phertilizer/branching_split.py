@@ -318,8 +318,8 @@ class Branching_split():
         #check to make sure we have enough observations to make a good assignment
         num_obsA = np.count_nonzero(self.total[np.ix_(cellsA, self.muts)],axis=0)
         num_obsB = np.count_nonzero(self.total[np.ix_(cellsB, self.muts)],axis=0)
-        obsA = np.median(num_obsA)
-        obsB = np.median(num_obsB)
+        obsA = np.quantile(num_obsA, 0.75)
+        obsB = np.quantile(num_obsB, 0.75)
         if obsA < self.params.nobs_per_cluster or obsB < self.params.nobs_per_cluster:
             mutsA = np.empty(shape=0, dtype=int)
             mutsB = np.empty(shape=0, dtype=int)
@@ -384,8 +384,8 @@ class Branching_split():
     
             f1, f2, f3, f4  = self.check_metrics(cellsA, cellsB, mutsA, mutsB, mutsC)
             if f1 <= self.params.low_cmb and f2 <= self.params.low_cmb and \
-                f3 >= self.params.high_cmb and f4:#and f4 >= self.params.prop_reads and f4:
-                    #  f5 >= self.params.prop_reads:
+                f3 >= self.params.high_cmb and f4:
+                
                 if norm_like > self.best_norm_like:
                     self.best_norm_like = norm_like
                     self.best_tree = cand_tree
@@ -444,8 +444,9 @@ class Branching_split():
     def check_reads(self, cells, muts, axis):
         nobs= np.count_nonzero(self.data.total[np.ix_(cells, muts)], axis=axis)
         obs = np.median(nobs)
+        return obs >= self.params.nobs_per_cluster
 
-        return obs > self.params.nobs_per_cluster
+
     def compute_norm_likelihood(self, cellsA, cellsB, mutsA, mutsB, mutsC):
         '''    calculated the normalized variant log likelihood for the 
                 given partition

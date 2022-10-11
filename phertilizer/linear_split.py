@@ -103,13 +103,11 @@ class Linear_split():
 
     def __init__(self,
                  data,
-                 cna_genotype_mode,
                  seed,
                  rng,
                  params
                  ):
 
-        self.cna_genotype_mode = cna_genotype_mode
         self.rng = rng
         self.np_rng= np.random.RandomState(params.seed)
         self.like0 = data.like0
@@ -120,14 +118,13 @@ class Linear_split():
         self.var = data.var
         self.total = data.total
 
-        self.states = ("gain", "loss", "neutral")
 
         self.cells = seed.cells
         self.muts = seed.muts
-        self.snv_bin_mapping = data.snv_bin_mapping
 
+        self.params = params
         self.radius = params.radius
-        self.npass = params.npass
+
         self.minobs = params.minobs
 
         self.use_copy_kernel = params.use_copy_kernel
@@ -136,11 +133,7 @@ class Linear_split():
         self.iterations = params.iterations
         self.starts = params.starts
 
-       # stopping parameters
-        self.lamb = params.lamb
-        self.tau = params.tau
-        self.spectral_gap = params.spectral_gap
-        self.jump_percentage = params.jump_percentage
+
 
         self.copy_distance_matrix = data.copy_distance
 
@@ -233,10 +226,10 @@ class Linear_split():
         '''
 
         num_obs = np.count_nonzero(self.total[np.ix_(cellsA, muts)],axis=0)
-        avg_obs = num_obs.mean()
-        if avg_obs <= 2:
+        nobs = np.quantile(num_obs, 0.75)
+        if nobs < self.params.nobs_per_cluster:
             return muts, None
-        # muts = np.setdiff1d(muts, na_muts)
+       
         like0_array = self.like0[np.ix_(cellsA, muts)].mean(axis=0)
         like1_array = self.like1[np.ix_(cellsA, muts)].mean(axis=0)
 
@@ -314,11 +307,7 @@ class Linear_split():
             mb_tot_count = np.count_nonzero(
                 self.total[np.ix_(cells, mutsB)], axis=1).reshape(-1)
             
-            # mb_mut_count = np.sum(
-            #     self.var[np.ix_(cells, mutsB)], axis=1).reshape(-1)
-            # mb_tot_count = np.sum(
-            #     self.total[np.ix_(cells, mutsB)], axis=1).reshape(-1)
-
+     
 
             cdist = self.copy_distance_matrix.copy()
             tmb = mb_mut_count/mb_tot_count
@@ -404,36 +393,11 @@ class Linear_split():
         stats["ca_mb_count"] = min(norm_mut_count1, norm_mut_count2)
         return cellsA, cellsB, stats
 
-    def assign_cna_events(self, cellsA, cellsB):
-        '''    use the precomputed hmm to compute the most likely CNA genotypes for the 
-        given cell clusters cellsA, cellsB
 
-
-        Parameters
-        ----------
-        cellsA : np.array
-            the cell indices in the first cluster
-        cellsB : np.array
-            the cell indices in the second cluster
-
-
-        Returns
-        -------
-        eventsA : dict
-            a dictionary mapping a CNA genotype state to a set of bins for the cells in first cluster
-        eventsB : np.array
-            a dictionary mapping a CNA genotype state to a set of bins for the cells in second cluster
-
-
-        '''
-    
-        eA, eB = None, None
-        if self.cna_genotype_mode:
-            eA = self.cnn_hmm.run(cellsA)
-
-            eB = self.cnn_hmm.run(cellsB)
-
-        return eA, eB
+    def check_reads(self, cells, muts, axis):
+        nobs= np.count_nonzero(self.data.total[np.ix_(cells, muts)], axis=axis)
+        obs = np.median(nobs)
+        return obs >= self.params.nobs_per_cluster
 
     def check_metrics(self, ca,cb, ma, mb):
       
@@ -453,13 +417,13 @@ class Linear_split():
         feat2= np.nanmedian((feat2_var/feat2_total))
 
 
-        feat3_total = np.count_nonzero(
-            self.data.total[np.ix_(cb, ma)], axis=1)
-        
-        
-        #should be high ~ 0.9 percent
-        feat3 = np.sum(feat3_total > 3)/len(cb)
+        feats = []
 
+        for a in [0,1]:
+            for c in [ca, cb]:
+                for m in [ma, mb]:
+                    feats.append( self.check_reads(c,m,a))
+        feat3 = all(feats)
     
 
         return feat1, feat2, feat3
@@ -503,7 +467,7 @@ class Linear_split():
                 else:
                     oldCellsA = cellsA
 
-                eA, eB = self.assign_cna_events(cellsA, cellsB)
+               
 
                 mutsA, mutsB= self.mut_assignment(cellsA, muts)
                 # muts = np.setdiff1d(muts, na_muts)
@@ -522,20 +486,17 @@ class Linear_split():
                     # mutsA, mutsB_tree = self.mut_assignment(cellsA, self.muts)
                     mutsB_tree = np.setdiff1d(self.muts, mutsA)
                     lt = LinearTree(cellsA, cellsB_tree,
-                                    mutsA, mutsB_tree, eA, eB)
+                                    mutsA, mutsB_tree)
                     # lt.post_process()
               
                     f1, f2, f3 = self.check_metrics(cellsA, cellsB_tree, mutsA, mutsB_tree)
-                    if f1 <= 0.075 and f2 >= 0.15 and f3 >= 0.9:
-                        # print(f1)
-                    # lt.post_process(self.data)
-                        # print(lt)
+                    if f1 <= self.params.low_cmb and f2 >= self.params.high_cmb and f3:
+           
                         internal_tree_list.insert(lt)
 
                         norm_list.append(self.compute_norm_likelihood(
                             cellsA, cellsB, mutsA, mutsB_tree))
-                    else:
-                        print('here')
+          
 
             self.use_copy_kernel = not self.use_copy_kernel
         best_tree = self.best_norm_like(internal_tree_list, norm_list)
@@ -552,11 +513,8 @@ class Linear_split():
        
             print(f"like norm {like_norm}: parent norm {parent_norm}")
             if like_norm > parent_norm:
-                self.cand_splits.insert(best_tree)
-            # cb =np.setdiff1d(cells, best_tree.get_tip_cells(0))
+                self.cand_splits.insert(best_tree)    
                 self.norm_like_list.append(like_norm)
-                # print(best_tree)
-                #self.run(best_tree.get_tip_cells(0), best_tree.get_tip_muts(0), p, parent_norm=like_norm)
                 self.run(best_tree.get_tip_cells(0), best_tree.get_tip_muts(0), p, parent_norm= like_norm)
 
         

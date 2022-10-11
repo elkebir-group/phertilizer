@@ -228,7 +228,7 @@ def get_options():
         "--runs", "1",
         "-a", "0.001",
         "--radius", "1",
-        "--gamma", "0.95",
+        "--gamma", "1",
         "--min_obs", "7",
         # "--post_process",
         "-m", f"{outpath}/pred_mut.csv",
@@ -243,7 +243,7 @@ def get_options():
         "--mode", "rd",
         "--low_cmb", "0.04",
         "--high_cmb", "0.2",
-        "--nobs_per_cluster", "3",
+        "--nobs_per_cluster", "5",
      "--use_copy_kernel",
      "--embedding",f"{outpath}/embedding.csv",
      "--post_process"

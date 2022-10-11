@@ -1,3 +1,4 @@
+from ast import Raise
 from copy import deepcopy
 import numpy as np
 import pandas as pd
@@ -227,13 +228,13 @@ class ClonalTree:
             return True
         return False
 
-    def get_seed_by_node(self, node, lamb, tau, anc_muts):
+    def get_seed_by_node(self, node):
 
         if node in list(self.tree.nodes()):
             cells = self.get_tip_cells(node)
             muts = self.get_tip_muts(node)
-            # if len(cells) > lamb and len(muts) > tau:
-            return Seed(cells, muts, anc_muts)
+         
+            return Seed(cells, muts)
 
         return None
 
@@ -266,6 +267,7 @@ class ClonalTree:
         self.mut_mapping = mm
         self.mut_loss_mapping = ml
         self.event_mapping = em
+        # print(self.find_root())
 
     def merge(self, tree, l):
 
@@ -537,12 +539,12 @@ class ClonalTree:
      
         cells = np.concatenate([self.cell_mapping[c][0] for c in clade])
         muts = self.mut_mapping[node]
-        cells =cells.astype(int)
-        muts= muts.astype(int)
         tot_count = np.count_nonzero(
                 data.total[np.ix_(cells, muts)], axis=1).reshape(-1)
         na_cells = cells[tot_count ==0]
         cells = np.setdiff1d(cells, na_cells)
+        cells= cells.astype(int)
+        muts = muts.astype(int)
         mut_count = np.count_nonzero(
                 data.var[np.ix_(cells, muts)], axis=1).reshape(-1)
         tot_count = np.count_nonzero(
@@ -574,17 +576,18 @@ class ClonalTree:
     def find_bad_snvs(self, data, node, q):
         clade = list(nx.dfs_preorder_nodes(self.tree, node))
    
+
         cells = np.concatenate([self.cell_mapping[c][0] for c in clade])
         muts = self.mut_mapping[node]
         cells= cells.astype(int)
-        muts= muts.astype(int)
+        muts = muts.astype(int)
         tot_count = np.count_nonzero(
                 data.total[np.ix_(cells, muts)], axis=0).reshape(-1)
 
         na_snvs = muts[tot_count ==0]
         muts = np.setdiff1d(muts, na_snvs)
-        # cells= cells.astype(int)
-        # muts= muts.astype(int)
+        cells= cells.astype(int)
+        muts = muts.astype(int)
         tot_count = np.count_nonzero(
                 data.total[np.ix_(cells, muts)], axis=0).reshape(-1)
         mut_count = np.count_nonzero(
@@ -629,10 +632,11 @@ class ClonalTree:
       
   
         for node, y in y_dict.items():
-           node_like =np.dot(y,like1) + np.dot(1-y, like0)
-           if node_like > best_like:
-                best_like = node_like
-                best_clust = node
+            if len(self.mut_mapping[node] >0):
+                node_like =np.dot(y,like1) + np.dot(1-y, like0)
+                if node_like > best_like:
+                    best_like = node_like
+                    best_clust = node
         
         if best_clust != clust:
             if clust >= 0:
@@ -692,7 +696,7 @@ class ClonalTree:
             for s in missing_snvs:
                 c_dict = self.cell_cluster_genotypes(n=ncells)
                 self.reassign_snv(s, c_dict, data)
-
+        loglikelihood = self.compute_likelihood(data)
         for i in range(iterations):
             
             c_dict = self.cell_cluster_genotypes(n=ncells)
@@ -702,25 +706,27 @@ class ClonalTree:
                 
                     for s in muts:
                         self.reassign_snv(s, c_dict, data)
-                
+                    # loglikelihood = self.compute_likelihood(data)
+                    # print(f'iteration {i} node: {n} variant {self.variant_likelihood} loglike: {loglikelihood}')
+              
 
                 loglikelihood = self.compute_likelihood(data)
                 print(f'iteration {i} node: {n} variant {self.variant_likelihood} loglike: {loglikelihood}')
             
             #check for termination if no improvements are made 
-            if prev_loglikelihood == loglikelihood:
-                break
-            else:
-                prev_loglikelihood = loglikelihood
 
-        # for n in nodes:
-        #     if n != self.find_root():
-        #         cells = self.find_bad_cells(data, n,q)
-        #     y_dict = self.snv_genotypes(m=nmuts)
-        #     for c in cells:
-        #         self.reassign_cell(c, y_dict,data)
-        
-        # loglikelihood = self.compute_likelihood(data)
+        #     if prev_loglikelihood == loglikelihood:
+        #         break
+        #     else:
+        #         prev_loglikelihood = loglikelihood
+        #     for n in nodes:
+        #         if n != self.find_root():
+        #             cells = self.find_bad_cells(data, n,q)
+        #             y_dict = self.snv_genotypes(m=nmuts)
+        #             for c in cells:
+        #                 self.reassign_cell(c, y_dict,data)
+
+
         
         return loglikelihood
 
@@ -729,76 +735,83 @@ class ClonalTree:
         for node in self.tree.nodes:
             for children in nx.dfs_successors(self.tree, source=node).values():
                 for child in children:
-                    for cell1 in product(self.cell_mapping[node][0], [1]):
-                        for cell2 in product(self.cell_mapping[child][0], [1]):
-                            pairs[(cell1, cell2)] += 1
+                    pairs.update(product(self.cell_mapping[node][0], self.cell_mapping[child][0]))
         return pairs
 
     def get_cell_cluster_pairs(self) -> Counter:
         pairs = Counter()
         for node in self.tree.nodes:
-            for cell1, cell2 in combinations(product(self.cell_mapping[node][0], [1]), 2):
-                if cell1 < cell2:
-                    pairs[(cell1, cell2)] += 1
-                else:
-                    pairs[(cell2, cell1)] += 1
+            pairs.update(combinations(sorted(self.cell_mapping[node][0]), 2))
         return pairs
 
     def get_cell_incomparable_pairs(self) -> Counter:
         pairs = Counter()
         for u, v in combinations(self.tree.nodes, 2):
             if self.is_incomparable(self.tree, u, v):
-                for cell1 in product(self.cell_mapping[u][0], [1]):
-                    for cell2 in product(self.cell_mapping[v][0], [1]):
-                        if cell1 < cell2:
-                            pairs[(cell1, cell2)] += 1
-                        else:
-                            pairs[(cell2, cell1)] += 1
+                pairs.update((min(a, b), max(a, b)) for a, b in product(self.cell_mapping[u][0], self.cell_mapping[v][0]))
+                # for cell1 in self.cell_mapping[u][0]:
+                #     for cell2 in self.cell_mapping[v][0]:
+                #         if cell1 < cell2:
+                #             pairs[(cell1, cell2)] += 1
+                #         else:
+                #             pairs[(cell2, cell1)] += 1
         return pairs
 
     def get_ancestor_pairs(self, include_loss: bool=True) -> Counter:
         pairs = Counter()
-        for node in self.tree.nodes:
-            for children in nx.dfs_successors(self.tree, source=node).values():
-                for child in children:
-                    if include_loss and node in self.mut_loss_mapping:
-                        node_loss = self.mut_loss_mapping[node]
-                    else:
-                        node_loss = []
+        if include_loss:
+            raise NotImplementedError("not impletmented")
+            # for node in self.tree.nodes:
+            #     for children in nx.dfs_successors(self.tree, source=node).values():
+            #         for child in children:
+            #             if include_loss and node in self.mut_loss_mapping:
+            #                 node_loss = self.mut_loss_mapping[node]
+            #             else:
+            #                 node_loss = []
 
-                    for mut1 in chain(
-                        product(self.mut_mapping[node], [1]),
-                        product(node_loss, [0])
-                    ):
-                        if include_loss and child in self.mut_loss_mapping:
-                            child_loss = self.mut_loss_mapping[child]
-                        else:
-                            child_loss = []
-                        for mut2 in chain(
-                            product(self.mut_mapping[child], [1]),
-                            product(child_loss, [0])
-                        ):
-                            pairs[(mut1, mut2)] += 1
+            #             for mut1 in chain(
+            #                 product(self.mut_mapping[node], [1]),
+            #                 product(node_loss, [0])
+            #             ):
+            #                 if include_loss and child in self.mut_loss_mapping:
+            #                     child_loss = self.mut_loss_mapping[child]
+            #                 else:
+            #                     child_loss = []
+            #                 for mut2 in chain(
+            #                     product(self.mut_mapping[child], [1]),
+            #                     product(child_loss, [0])
+            #                 ):
+            #                     pairs[(mut1, mut2)] += 1
+        else:
+            for node in self.tree.nodes:
+                for children in nx.dfs_successors(self.tree, source=node).values():
+                    for child in children:
+                        pairs.update(product(self.mut_mapping[node], self.mut_mapping[child]))
         return pairs
 
     def get_cluster_pairs(self, include_loss: bool=True) -> Counter:
         pairs = Counter()
-        for node in self.tree.nodes:
-            if include_loss and node in self.mut_loss_mapping:
-                node_loss = self.mut_loss_mapping[node]
-            else:
-                node_loss = []
-            for mut1, mut2 in combinations(
-                chain(
-                    product(self.mut_mapping[node], [1]),
-                    product(node_loss, [0])
-                ),
-                2
-            ):
-                if mut1 < mut2:
-                    pairs[(mut1, mut2)] += 1
+        if include_loss:
+            raise NotImplementedError("not impletmented")
+            for node in self.tree.nodes:
+                if include_loss and node in self.mut_loss_mapping:
+                    node_loss = self.mut_loss_mapping[node]
                 else:
-                    pairs[(mut2, mut1)] += 1
+                    node_loss = []
+                for mut1, mut2 in combinations(
+                    chain(
+                        product(self.mut_mapping[node], [1]),
+                        product(node_loss, [0])
+                    ),
+                    2
+                ):
+                    if mut1 < mut2:
+                        pairs[(mut1, mut2)] += 1
+                    else:
+                        pairs[(mut2, mut1)] += 1
+        else:
+            for node in self.tree.nodes:
+                pairs.update(combinations(sorted(self.mut_mapping[node]), 2))
         return pairs
 
     @staticmethod
@@ -813,29 +826,35 @@ class ClonalTree:
 
     def get_incomparable_pairs(self, include_loss: bool=True) -> Counter:
         pairs = Counter()
-        for u, v in combinations(self.tree.nodes, 2):
-            if include_loss and u in self.mut_loss_mapping:
-                u_loss = self.mut_loss_mapping[u]
-            else:
-                u_loss = []
-            if include_loss and v in self.mut_loss_mapping:
-                v_loss = self.mut_loss_mapping[v]
-            else:
-                v_loss = []
+        if include_loss:
+            raise NotImplementedError("not impletmented")
+            # for u, v in combinations(self.tree.nodes, 2):
+            #     if include_loss and u in self.mut_loss_mapping:
+            #         u_loss = self.mut_loss_mapping[u]
+            #     else:
+            #         u_loss = []
+            #     if include_loss and v in self.mut_loss_mapping:
+            #         v_loss = self.mut_loss_mapping[v]
+            #     else:
+            #         v_loss = []
 
-            if self.is_incomparable(self.tree, u, v):
-                for mut1 in chain(
-                    product(self.mut_mapping[u], [1]),
-                    product(u_loss, [0])
-                ):
-                    for mut2 in chain(
-                        product(self.mut_mapping[v], [1]),
-                        product(v_loss, [0])
-                    ):
-                        if mut1 < mut2:
-                            pairs[(mut1, mut2)] += 1
-                        else:
-                            pairs[(mut2, mut1)] += 1
+            #     if self.is_incomparable(self.tree, u, v):
+            #         for mut1 in chain(
+            #             product(self.mut_mapping[u], [1]),
+            #             product(u_loss, [0])
+            #         ):
+            #             for mut2 in chain(
+            #                 product(self.mut_mapping[v], [1]),
+            #                 product(v_loss, [0])
+            #             ):
+            #                 if mut1 < mut2:
+            #                     pairs[(mut1, mut2)] += 1
+            #                 else:
+            #                     pairs[(mut2, mut1)] += 1
+        else:
+            for u, v in combinations(self.tree.nodes, 2):
+                if self.is_incomparable(self.tree, u, v):
+                    pairs.update((min(a, b), max(a, b)) for a, b in product(self.mut_mapping[u], self.mut_mapping[v]))
         return pairs
 
     def compute_likelihood(self, data):
@@ -870,10 +889,10 @@ class ClonalTree:
         else:
             like1 = data.like1_marg
       
-        snv_bin_mapping = data.snv_bin_mapping
+       
         node_like_dict = {}
         node_likelihood = self.compute_variant_likelihood(
-            node, like0, like1, snv_bin_mapping)
+            node, like0, like1, None)
         node_like_dict["variant"] = node_likelihood
         node_like_dict["total"] = node_likelihood
 
@@ -1010,19 +1029,14 @@ class LinearTree(ClonalTree):
             em[1] = eB
         super().__init__(t, cm, mm, ml, em)
 
-    def is_valid(self, lamb, tau):
-        return True
-        #return len(self.get_tip_cells(0)) > lamb and len(self.mut_mapping[0]) > tau and len(self.get_tip_cells(1)) > lamb #and len(self.get_tip_muts(1)) > tau
 
-    def get_seeds(self,  ancestral_muts):
+    def get_seeds(self):
         seed_list = []
 
         cellsB = self.get_tip_cells(1)
         mutsB = self.get_tip_muts(1)
-        # if len(cellsB) > lamb and len(mutsB) > tau:
-        anc_muts = np.sort(np.union1d(ancestral_muts, self.mut_mapping[0]))
-        anc_muts = np.empty(shape=0, dtype=int)
-        seed_list.append(Seed(cellsB, mutsB, anc_muts))
+     
+        seed_list.append(Seed(cellsB, mutsB))
 
         return seed_list
 
@@ -1050,33 +1064,18 @@ class BranchingTree(ClonalTree):
         ml = {}
         super().__init__(t, cm, mm, ml, em)
 
-    def is_valid(self, lamb, tau):
-        cells_valid = len(self.get_tip_cells(1)) > lamb and len(self.get_tip_cells(2)) > lamb
 
-        muts_valid =len(self.mut_mapping[1]) > tau or len(self.mut_mapping[2]) > tau 
-        muts_valid = True
-        cells_valid = True
-        return muts_valid and cells_valid
-
-        # if (len(self.get_tip_cells(1)) > lamb and len(self.mut_mapping[1]) > tau) or (len(self.get_tip_cells(2)) > lamb and len(self.mut_mapping[2]) > tau):
-        #     return True
-        # else:
-        #     return False
-
-    def get_seeds(self, ancestral_muts):
+    def get_seeds(self):
 
         seed_list = []
         leaves = [1, 2]
-        ancestral_muts = np.sort(np.union1d(
-            ancestral_muts, self.mut_mapping[0]))
-        ancestral_muts = np.empty(shape=0, dtype=int)
+   
         for l in leaves:
 
             cells = self.get_tip_cells(l)
             muts = self.mut_mapping[l]
-            # if len(cells) > lamb and len(muts) > tau:
           
-            seed_list.append(Seed(cells, muts, ancestral_muts))
+            seed_list.append(Seed(cells, muts))
 
         return seed_list
 
@@ -1093,10 +1092,9 @@ class IdentityTree(ClonalTree):
             em[0] = events
         super().__init__(t, cm, mm, ml, em)
 
-    def is_valid(self, lamb, tau):
-        return True
 
-    def get_seeds(self,  ancestral_muts=None):
+
+    def get_seeds(self):
         return []
 
 

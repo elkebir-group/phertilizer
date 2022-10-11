@@ -604,7 +604,7 @@ class Phertilizer:
                     leaf_nodes = curr_tree.get_leaves()
                     for l in leaf_nodes:
                         anc_muts = curr_tree.get_ancestral_muts(l)
-                        seed = curr_tree.get_seed_by_node(l, self.params.lamb, self.params.tau, anc_muts)
+                        seed = curr_tree.get_seed_by_node(l)
                     
                         if seed is None:
                             continue
@@ -660,7 +660,7 @@ class Phertilizer:
         if branching_tree is not None:
 
 
-            seed_list = branching_tree.get_seeds(np.empty(shape=0, dtype=int))
+            seed_list = branching_tree.get_seeds()
         else:
             seed_list = []
 
@@ -687,23 +687,20 @@ class Phertilizer:
                                         self.rng,  
                                         self.params,
                                     )
-        ancestral_muts = np.empty(shape=0, dtype=int)
+  
         tree_list, best_tree = lin_split.sprout()
 
         num_trees = tree_list.size()
         if best_tree is not None:
-            seed_list =best_tree.get_seeds(ancestral_muts)
+            seed_list =best_tree.get_seeds()
             seed.set_linear(best_tree)
-            # print(best_tree)
-            # print(num_trees)
+     
             if num_trees >= 2:
                 start = num_trees -1
-                # root = tree_list.index_tree(start)
+ 
                 cA = best_tree.get_tip_cells(0)
                 mA= best_tree.get_tip_muts(0)
-                # cB = np.setdiff1d(seed.cells, cA)
-                # mB  = np.setdiff1d(seed.muts, mA)
-                # prev_tree = LinearTree(cA, cB, mA, mB)
+
                 ca_cells = cA 
                 ma_muts = mA
                 start = start - 1
@@ -719,22 +716,22 @@ class Phertilizer:
             
                     next_tree.cell_mapping[0] = {0: ca_cells }
                     next_tree.mut_mapping[0] = ma_muts
-                    # print(curr_seed)
+            
                     curr_seed.set_linear(next_tree)
                     ca_cells = cA
                     ma_muts = mA
-                    # print(next_tree)
-                    next_seeds = next_tree.get_seeds(ancestral_muts)
+        
+                    next_seeds = next_tree.get_seeds()
                     seed_list += next_seeds
                     
                     curr_seed = next_seeds[0]
-                    # print(curr_seed)
+        
             
                     start = start -1
         else:
             seed_list = []
 
-            ##need to add last seed
+  
 
 
 

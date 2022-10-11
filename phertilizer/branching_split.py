@@ -10,7 +10,7 @@ import pandas as pd
 # from phertilizer.clonal_tree_list import ClonalTreeList
 
 from clonal_tree_list import ClonalTreeList
-from utils import normalizedMinCut, check_stats, normalizedMinCut_old, snv_kernel_width, cnv_kernel_width, impute_mut_features, check_obs
+from utils import normalizedMinCut, snv_kernel_width, cnv_kernel_width, impute_mut_features
 from clonal_tree import BranchingTree
 from clonal_tree_list import ClonalTreeList
 
@@ -92,7 +92,6 @@ class Branching_split():
 
     def __init__(self,
                  data,
-                 cna_genotype_mode,
                  seed,
                  rng,
                  params
@@ -106,32 +105,21 @@ class Branching_split():
         self.like1_dict = data.like1_dict
         self.like1 = data.like1_marg
 
-        self.cna_genotype_mode = cna_genotype_mode
 
         self.cells = seed.cells
         self.muts = seed.muts
 
-        self.lamb = params.lamb
-        self.tau = params.tau
-
-        self.npass = params.npass
         self.rng = rng
         self.np_rng = np.random.RandomState(params.seed)
-
         self.starts = params.starts
         self.iterations = params.iterations
-
-        self.spectral_gap = params.spectral_gap
-        self.jump_percentage = params.jump_percentage
-
         self.use_copy_kernel = params.use_copy_kernel
-
         self.radius = params.radius
+        self.params =params 
+    
+    low_cmb: float= 0.075
+    high_cmb: float=0.15
 
-        self.states = ["gain", "loss", "neutral"]
-        if self.data.snv_bin_mapping is not None:
-            self.bin_mapping = {
-                m: self.data.snv_bin_mapping.loc[m] for m in self.data.snv_bin_mapping.index}
 
     def random_init(self, arr):
         ''' uniformly at random splits a given array into three parts (A,B,C)
@@ -237,51 +225,17 @@ class Branching_split():
             c_mat = self.data.copy_distance[np.ix_(cells, cells)]
 
             r = np.quantile(c_mat, self.radius)
-            # if np.max(c_mat) > 4:
-            # if np.max(c_mat) > 1:
+  
             if self.use_copy_kernel:
                 copy_kernel = np.exp(-1*c_mat/cnv_kernel_width(c_mat))
                 copy_kernel[c_mat >= r] = 0
                 kernel = np.multiply(copy_kernel, kernel)
 
-            # else:
-            #     print("Max copy distance < 1, using SNV kernel only")
 
             return kernel, mut_features_df
         else:
             return None, None
 
-    def mut_assignment_with_cna(self,  curr_tree):
-        m = self.data.like0.shape[1]
-        cellsA = curr_tree.get_tip_cells(1)
-        cellsB = curr_tree.get_tip_cells(2)
-        all_cells = curr_tree.get_all_cells()
-        zA = curr_tree.event_by_node(m, cellsA, 1, self.data.snv_bin_mapping)
-        zB = curr_tree.event_by_node(m, cellsB, 2, self.data.snv_bin_mapping)
-        z = curr_tree.event_matrix(m,  self.data.snv_bin_mapping)
-
-        for s in self.states:
-            mutsA = self.data.like0[cellsB, :].sum(axis=0)
-            mutsB = self.data.like0[cellsA, :].sum(axis=0)
-            mutsC = np.zeros(shape=m, dtype=float)
-            for s in self.states:
-                like1_mat = self.data.like1_dict[s]
-                mutsA += np.ma.array(like1_mat[cellsA, :],
-                                     mask=zA != s).sum(axis=0)
-                mutsB += np.ma.array(like1_mat[cellsB, :],
-                                     mask=zB != s).sum(axis=0)
-                mutsC += np.ma.array(like1_mat[all_cells, :],
-                                     mask=z != s).sum(axis=0)
-
-        combined_matrix = np.vstack([mutsC,mutsA, mutsB ])
-        mut_assignments = np.argmax(combined_matrix, axis=0).reshape(-1)
-        mut_assignments = mut_assignments[self.muts]
-
-        mutsA = np.array(self.muts[mut_assignments == 1])
-        mutsB = np.array(self.muts[mut_assignments == 2])
-        mutsC = np.array(self.muts[mut_assignments == 0])
-
-        return mutsA, mutsB, mutsC
 
     def cluster_cells(self, mutsA, mutsB, cells):
         '''   clusters an input set of cells into cellsA and cellsB using normalized min cut on a graph with edge
@@ -311,11 +265,11 @@ class Branching_split():
 
         W, mut_features = self.create_affinity(mutsA, mutsB, cells)
         if W is None:
-            return cells, np.empty(shape=0, dtype=int), None
+            return cells, np.empty(shape=0, dtype=int)
 
         if np.any(np.isnan(W)):
             print("Terminating cell clustering due to NANs in affinity matrix")
-            return cells, np.empty(shape=0, dtype=int), None
+            return cells, np.empty(shape=0, dtype=int)
 
         clusters, y_vals, labels, stats = normalizedMinCut(W, cells, self.np_rng)
 
@@ -337,11 +291,7 @@ class Branching_split():
             cellsA = cells1
             cellsB = cells2
    
-        stats['min_avg_ma'] = min( avg_muts_ma[0], avg_muts_ma[1])
-        stats['max_avg_ma'] = max( avg_muts_ma[0] ,avg_muts_ma[1])
-        stats['min_avg_mb'] = min( avg_muts_mb[0], avg_muts_mb[1])
-        stats['max_avg_mb'] = max( avg_muts_mb[0] ,avg_muts_mb[1])
-        return cellsA, cellsB, stats
+        return cellsA, cellsB
 
     def mut_assignment(self, cellsA, cellsB):
         '''    returns three arrays (mutsA, mutsB, mutsC) based on the maximum likelihood with the node assignment of each SNV for 
@@ -365,16 +315,17 @@ class Branching_split():
 
         '''
 
-        num_obsA = np.count_nonzero(self.total[np.ix_(cellsA, self.muts)],axis=0).mean()
-        num_obsB = np.count_nonzero(self.total[np.ix_(cellsB, self.muts)],axis=0).mean()
-
-        if num_obsA <= 2 or num_obsB <=2:
+        #check to make sure we have enough observations to make a good assignment
+        num_obsA = np.count_nonzero(self.total[np.ix_(cellsA, self.muts)],axis=0)
+        num_obsB = np.count_nonzero(self.total[np.ix_(cellsB, self.muts)],axis=0)
+        obsA = np.median(num_obsA)
+        obsB = np.median(num_obsB)
+        if obsA < self.params.nobs_per_cluster or obsB < self.params.nobs_per_cluster:
             mutsA = np.empty(shape=0, dtype=int)
             mutsB = np.empty(shape=0, dtype=int)
             mutsC = self.muts
             return mutsA, mutsB, mutsC
-
-
+    
         like1 = self.data.like1_marg
 
         mutsA = []
@@ -388,21 +339,7 @@ class Branching_split():
         mutsC_cand = like1[np.ix_(cellsA, self.muts)].sum(
             axis=0) + like1[np.ix_(cellsB, self.muts)].sum(axis=0)
         
-        # nobs = np.count_nonzero(self.total[:,self.muts], axis=0)
-        # a_obs = self.total[np.ix_(cellsA,self.muts)]
-        # a_obs = np.count_nonzero(a_obs,axis=0)
-        # b_obs = self.total[np.ix_(cellsB,self.muts)]
-        # b_obs =np.count_nonzero(b_obs, axis=0)
-        # a_weight=a_obs/nobs
-        # b_weight=b_obs/nobs
-        # mutsA_cand = like1[np.ix_(cellsA, self.muts)].sum(
-        #     axis=0)*a_weight + self.data.like0[np.ix_(cellsB, self.muts)].sum(axis=0)*b_weight
-        # mutsB_cand = a_weight*self.data.like0[np.ix_(cellsA, self.muts)].sum(
-        #     axis=0) + b_weight*like1[np.ix_(cellsB, self.muts)].sum(axis=0)
-        # mutsC_cand = a_weight*like1[np.ix_(cellsA, self.muts)].sum(
-        #     axis=0) + b_weight*like1[np.ix_(cellsB, self.muts)].sum(axis=0)
-
-        # for idx, m in enumerate(self.muts):
+   
         for idx, m in enumerate(self.muts):
             if mutsA_cand[idx] == max(mutsA_cand[idx], mutsB_cand[idx], mutsC_cand[idx]):
                 mutsA.append(m)
@@ -413,36 +350,6 @@ class Branching_split():
 
         return np.array(mutsA), np.array(mutsB), np.array(mutsC)
 
-    def assign_cna_events(self, cellsA, cellsB):
-        '''    use the precomputed hmm to compute the most likely CNA genotypes for the 
-        given cell clusters cellsA, cellsB
-
-
-        Parameters
-        ----------
-        cellsA : np.array
-            the cell indices in the first cluster
-        cellsB : np.array
-            the cell indices in the second cluster
-
-
-        Returns
-        -------
-        eventsA : dict
-            a dictionary mapping a CNA genotype state to a set of bins for the cells in first cluster
-        eventsB : np.array
-            a dictionary mapping a CNA genotype state to a set of bins for the cells in second cluster
-
-
-        '''
-
-        eventsA, eventsB = None, None
-        if self.cna_genotype_mode:
-            eventsA = self.data.cna_hmm.run(cellsA)
-
-            eventsB = self.data.cna_hmm.run(cellsB)
-
-        return eventsA, eventsB
 
     def run(self):
         '''   a helper method to add candidate branching for each restart
@@ -457,40 +364,34 @@ class Branching_split():
         mutsA, mutsB, mutsC = self.random_init(muts)
         oldA = np.empty(shape=0, dtype=int)
         for j in range(self.iterations):
-            cellsA, cellsB, stats = self.cluster_cells(mutsA, mutsB, cells)
+            if mutsB.shape[0] ==0 or mutsA.shape[0]==0:
+                break
+            cellsA, cellsB = self.cluster_cells(mutsA, mutsB, cells)
 
-            if len(cellsB) == 0 or len(cellsA) == 0 or np.array_equal(np.sort(cellsA), np.sort(oldA)):
+            if len(cellsB) == 0 or len(cellsA) == 0 or \
+                np.array_equal(np.sort(cellsA), np.sort(oldA)):
                 break
             else:
                 oldA = cellsA
 
-            eA, eB = self.assign_cna_events(cellsA, cellsB)
 
             mutsA, mutsB, mutsC = self.mut_assignment(cellsA, cellsB)
 
-        # if (len(cellsA) > self.lamb and len(cellsB) > 1) or (len(cellsB) > self.lamb and len(cellsA) > 1):
-        if len(cellsA) > 0 and len(cellsB) > 0:
+        if len(cellsA) > 0 and len(cellsB) > 0 and len(mutsA) >0 and len(mutsB) > 0:
             norm_like = self.compute_norm_likelihood(cellsA, cellsB, mutsA, mutsB, mutsC)
-           
-            # f1, f2, f3, f4 = self.check_metrics(cellsA, cellsB, mutsA, mutsB, mutsC)
-            # if  stats['min_avg_ma'] <= 0.05 and stats['max_avg_ma'] >= 0.15 and stats['min_avg_mb'] <= 0.05 and stats['max_avg_mb'] >= 0.15:
-             
-            # if check_stats(stats, self.jump_percentage, self.spectral_gap, self.npass):
-            # if stats['abs_avg_ma_diff'] > 2:
-            
             cand_tree= BranchingTree(
-                            cellsA, cellsB, mutsA, mutsB, mutsC, eA, eB, eC=None)
-            # self.cand_trees.insert(cand_tree)
-            f1, f2, f3, f4, f5  = self.check_metrics(cellsA, cellsB, mutsA, mutsB, mutsC)
-            if f1 <= 0.075 and f2 <= 0.075 and f3 >= 0.15 and f4 > 0.9 and f5 >= 0.9:
+                            cellsA, cellsB, mutsA, mutsB, mutsC)
+    
+            f1, f2, f3, f4  = self.check_metrics(cellsA, cellsB, mutsA, mutsB, mutsC)
+            if f1 <= self.params.low_cmb and f2 <= self.params.low_cmb and \
+                f3 >= self.params.high_cmb and f4:#and f4 >= self.params.prop_reads and f4:
+                    #  f5 >= self.params.prop_reads:
                 if norm_like > self.best_norm_like:
                     self.best_norm_like = norm_like
                     self.best_tree = cand_tree
-                    # print(self.best_tree)
+            
                  
-                    
-            # else:
-            #     print("Potentially bad split, user beware")
+       
     
     def check_metrics(self, ca,cb, ma, mb, mc):
       
@@ -501,10 +402,7 @@ class Branching_split():
         #should be low  <= 0.05
         feat1 =np.nanmedian((feat1_var/feat1_total))
 
-        feat2_var = np.count_nonzero(
-            self.data.var[np.ix_(cb, ma)], axis=1)
-        feat2_total = np.count_nonzero(
-            self.data.total[np.ix_(cb, ma)], axis=1)
+    
         #should be low  <= 0.05
         feat2 =np.nanmedian((feat1_var/feat1_total))
 
@@ -521,27 +419,33 @@ class Branching_split():
             feat3 = 1
 
 
+        # feat4_total = np.count_nonzero(
+        #     self.data.total[np.ix_(ca, mb)], axis=1)
+                
+        # #should be high ~ 0.9 percent
+        # feat4 = np.sum(feat4_total >= self.params.min_num_reads)/len(ca)
 
-        feat4_total = np.count_nonzero(
-            self.data.total[np.ix_(ca, mb)], axis=1)
+        # feat5_total = np.count_nonzero(
+        #     self.data.total[np.ix_(cb, ma)], axis=1)
         
-        
-        #should be high ~ 0.9 percent
-        feat4 = np.sum(feat4_total > 3)/len(ca)
+        # #should be high ~ 0.9 percent
+        # feat5 = np.sum(feat5_total >= self.params.min_num_reads)/len(cb)
 
+        feats = []
 
-        feat5_total = np.count_nonzero(
-            self.data.total[np.ix_(cb, ma)], axis=1)
-        
-        
-        #should be high ~ 0.9 percent
-        feat5 = np.sum(feat5_total > 3)/len(cb)
+        for a in [0,1]:
+            for c in [ca, cb]:
+                for m in [ma, mb]:
+                    feats.append( self.check_reads(c,m,a))
+        feat3 = all(feats)
 
+        return feat1, feat2, feat3, feats #feat4, feat5
 
-    
+    def check_reads(self, cells, muts, axis):
+        nobs= np.count_nonzero(self.data.total[np.ix_(cells, muts)], axis=axis)
+        obs = np.median(nobs)
 
-        return feat1, feat2, feat3, feat4, feat5
-
+        return obs > self.params.nobs_per_cluster
     def compute_norm_likelihood(self, cellsA, cellsB, mutsA, mutsB, mutsC):
         '''    calculated the normalized variant log likelihood for the 
                 given partition
@@ -587,45 +491,13 @@ class Branching_split():
             a BranchingTree with maximum likelihood among all restarts
       
         """
-
-        # var_counts_by_snv= self.data.var[np.ix_(self.cells, self.muts)].sum(axis=0)
-        # bad_snvs = self.muts[var_counts_by_snv==0]
-        # self.muts = np.setdiff1d(self.muts, bad_snvs)
-        
-        # var_counts_by_cells = self.data.var[np.ix_(self.cells,self.muts)].sum(axis=1)
-        # bad_cells = self.cells[var_counts_by_cells ==0]
-        # self.cells = np.setdiff1d(self.cells, bad_cells)
-
-        # cell_mean_val = check_obs(self.cells, self.muts, self.total, axis=1)
-        # print(cell_mean_val)
-        # snv_mean_val = check_obs(self.cells, self.muts, self.total, axis=0)
-        # print(snv_mean_val)
-
-        # seed_obs = check_obs(self.cells, self.muts, self.total)
-        # print(f"Number of Observations in Seed: {seed_obs}")
-        # if seed_obs < self.params.minobs:
-        #     return None
-
-
-        # if cell_mean_val <=  12 or snv_mean_val <= 12:
-        #     return None
-        
-
         self.cand_trees = ClonalTreeList()
         self.best_norm_like = np.NINF
         self.best_tree = None
         for i in range(self.starts):
       
-            # self.use_copy_kernel= True
             self.run()
             self.use_copy_kernel = not self.use_copy_kernel
-
-        # if self.cand_trees.has_trees():
-        #     best_branching_tree, _ = self.cand_trees.find_best_tree(self.data)
-
-          
-            # cellsA = best_branching_tree.cell_mapping[0][0]
-            # best_branching_tree.cell_mapping[0][0]=np.union1d(bad_cells, cellsA)
-            # mutsA =  best_branching_tree.mut_mapping[0]
-            # best_branching_tree.mut_mapping[0] = np.union1d(bad_snvs, mutsA)
         return self.best_tree
+   
+        

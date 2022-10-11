@@ -173,38 +173,43 @@ def get_options():
                         help="input file for variant and total read counts with unlabled columns: [chr snv cell base var total]")
     parser.add_argument("--bin_count_data", required=True,
                         help="input binned read counts with headers containing bin ids")
-    parser.add_argument("--bin_count_normal",
-                        help="input binned read counts for normal cells with identical bins as the bin count data")
-    parser.add_argument("--snv_bin_mapping",
-                        help="a comma delimited file with unlabeled columns: [snv chr bin]")
+    # parser.add_argument("--bin_count_normal",
+    #                     help="input binned read counts for normal cells with identical bins as the bin count data")
+    # parser.add_argument("--snv_bin_mapping",
+    #                     help="a comma delimited file with unlabeled columns: [snv chr bin]")
     parser.add_argument("-a", "--alpha", type=float, default=0.001,
                         help="per base read error rate")
-    parser.add_argument("--min_cells", type=int, default=100,
-                        help="smallest number of cells required to form a clone")
-    parser.add_argument("--min_snvs", type=int, default=100,
-                        help="smallest number of SNVs required to form a cluster")
-    parser.add_argument("--min_frac", type=float,
-                        help="smallest proportion of total cells(snvs) needed to form a cluster, if min_cells or min_snvs are given, min_frac is ignored")
+    # parser.add_argument("--min_cells", type=int, default=100,
+    #                     help="smallest number of cells required to form a clone")
+    # parser.add_argument("--min_snvs", type=int, default=100,
+    #                     help="smallest number of SNVs required to form a cluster")
+    # parser.add_argument("--min_frac", type=float,
+    #                     help="smallest proportion of total cells(snvs) needed to form a cluster, if min_cells or min_snvs are given, min_frac is ignored")
     parser.add_argument("-j", "--iterations", type=int, default=5,
                         help="maximum number of iterations")
     parser.add_argument("-s", "--starts", type=int, default=3,
                         help="number of restarts")
     parser.add_argument("-d", "--seed", type=int, default=99059,
                         help="seed")
-    parser.add_argument("--npass", type=int, default=1)
-    parser.add_argument("--radius", type=float, default=0.5)
+    parser.add_argument("--radius", type=float, default=1.0)
     parser.add_argument("-c", "--copies", type=int, default=5,
                         help="max number of copies")
-    parser.add_argument("--neutral_mean",  type=float, default=1.0,
-                        help="center of neutral RDR distribution")
-    parser.add_argument("--neutral_eps",  type=float, default=0.15,
-                        help="cutoff of neutral RDR distribution")
+    parser.add_argument( "--low_cmb", type=float, default=0.05)
+    parser.add_argument( "--high_cmb", type=float, default=0.15)
+    parser.add_argument( "--nobs_per_cluster", type=float, default=3.0)
+
+    # parser.add_argument("--neutral_mean",  type=float, default=1.0,
+    #                     help="center of neutral RDR distribution")
+    # parser.add_argument("--neutral_eps",  type=float, default=0.15,
+    #                     help="cutoff of neutral RDR distribution")
     parser.add_argument("-m", "--pred-mut",
                         help="output file for mutation clusters")
     parser.add_argument("-n", "--pred_cell",
                         help="output file cell clusters")
     parser.add_argument("--runs", type=int, default=1,
                         help="number of Phertilizer runs")
+    parser.add_argument("--no_dim_reduce", action="store_true",
+                        help="if dimensionality reduction should not be used")
     # parser.add_argument("-e", "--pred_event",
     #                     help="output file cna genotypes")
     parser.add_argument("-g", "--gamma", type=float, default=0.95,
@@ -233,13 +238,16 @@ def get_options():
                         help="output file where the likelihood of the best tree should be written")
     parser.add_argument("--mode", choices=["var", "rd"],
                         help="the likelihood phertilizer should use to select the best tree")
-    parser.add_argument("--data", type=str,
-                        help="filename where pickled data should be saved for post-processing")
-    parser.add_argument("--params", type=str,
-                        help="filename where pickled parameters should be save")      
     parser.add_argument("--embedding", type=str,
                         help="filename where the umap coordinates should be saved")  
+                
     args = parser.parse_args(None if sys.argv[1:] else ['-h'])
+
+
+    # parser.add_argument("--data", type=str,
+    #                     help="filename where pickled data should be saved for post-processing")
+    # parser.add_argument("--params", type=str,
+    #                     help="filename where pickled parameters should be save")      
 
 #/scratch/data/leah/phertilizer/simulations/phertilizer/recomb_rd/clones7_l0_loh0_p0.01_ck1/s12_n1500_m5000
 #     inpath = "/scratch/data/leah/phertilizer/simulations/phertilizer/phert_input/s13_n5000_m5000_c5_p0.01_cna1_l0_loh0_dcl2_dsnv2_dcnv2"

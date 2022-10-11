@@ -3,23 +3,17 @@ from dataclasses import dataclass
 
 @dataclass
 class Params:
-    lamb : int = 200
-    tau : int = 200
     starts : int = 5
     iterations : int = 10 
-    spectral_gap : float = 0.05
-    jump_percentage : float = 0.075
-    radius : float = 0.5
-    npass : int = 1
+    radius : float = 1
     minobs: int = 4113
     seed: int = 1026
+    post_process: bool = True
     use_copy_kernel: bool = False
+    low_cmb: float = 0.05
+    high_cmb: float = 0.15
+    nobs_per_cluster: float = 3
     def __post_init__(self):
         if self.radius > 1:
             self.radius = 1
         
-        if self.jump_percentage > 1:
-            self.jump_percentage = 0.075
-        
-        if self.npass  > 2:
-            self.npass = 2

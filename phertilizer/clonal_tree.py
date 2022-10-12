@@ -632,7 +632,7 @@ class ClonalTree:
       
   
         for node, y in y_dict.items():
-            if len(self.mut_mapping[node] >0):
+            if len(list(self.tree.successors(node))) <= 1:
                 node_like =np.dot(y,like1) + np.dot(1-y, like0)
                 if node_like > best_like:
                     best_like = node_like
@@ -713,18 +713,19 @@ class ClonalTree:
                 loglikelihood = self.compute_likelihood(data)
                 print(f'iteration {i} node: {n} variant {self.variant_likelihood} loglike: {loglikelihood}')
             
-            #check for termination if no improvements are made 
 
-        #     if prev_loglikelihood == loglikelihood:
-        #         break
-        #     else:
-        #         prev_loglikelihood = loglikelihood
-        #     for n in nodes:
-        #         if n != self.find_root():
-        #             cells = self.find_bad_cells(data, n,q)
-        #             y_dict = self.snv_genotypes(m=nmuts)
-        #             for c in cells:
-        #                 self.reassign_cell(c, y_dict,data)
+
+                if prev_loglikelihood == loglikelihood:
+                    break
+                else:
+                    prev_loglikelihood = loglikelihood
+
+            # for n in nodes:
+            #     if n != self.find_root():
+            #         cells = self.find_bad_cells(data, n,q)
+            #         y_dict = self.snv_genotypes(m=nmuts)
+            #         for c in cells:
+            #             self.reassign_cell(c, y_dict,data)
 
 
         

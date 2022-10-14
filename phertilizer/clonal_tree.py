@@ -187,6 +187,8 @@ class ClonalTree:
 
         self.use_rd = True
 
+        self.norm_loglikelihood = -10000
+
     def __eq__(self, obj):
 
         is_isomorphic = nx.is_isomorphic(

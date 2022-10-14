@@ -270,10 +270,10 @@ class Phertilizer:
         bin_count_data = bin_count_data.sort_values(by=['cell_index'])
         bin_count_data.drop(['cell', 'cell_index'], inplace=True, axis=1)
         bin_count_data = bin_count_data.to_numpy()
-        bin_count_data = bin_count_data/(bin_count_data.sum(axis=1).reshape(-1,1))
+       
 
         if dim_reduce:
-      
+            bin_count_data = bin_count_data/(bin_count_data.sum(axis=1).reshape(-1,1))
             reducer = umap.UMAP(n_neighbors=40,
                                 min_dist=0,
                                 n_components=2,

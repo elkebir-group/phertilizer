@@ -214,11 +214,15 @@ def get_options():
     inpath = f"{base}/simulation_study/downsample/{instance}"
     outpath = f"{base}/simulation_study/test"
     # inpath =outpath
-    
+    base = "/home/ec2-user/phertilizer_archive/ACT/phertilizer"
+    instance= "TN1"
+    inpath = f"{base}/preprocess/{instance}"
+    outpath = f"{base}/test"
     
     args = parser.parse_args([ 
         "-f", f"{inpath}/dataframe.tsv",
-        "--bin_count_data", f"{inpath}/reads_per_bin.csv",
+        "--bin_count_data", f"{inpath}/binned_read_count_embedding.csv",
+        # "--bin_count_data", f"{inpath}/reads_per_bin.csv",
         # "-f", f"{outpath}/dataframe.tsv",
         # "--bin_count_dat", f"{outpath}/bin_counts.csv",
         "-d", "21",
@@ -228,7 +232,7 @@ def get_options():
         "--runs", "1",
         "-a", "0.001",
         "--radius", "1",
-        "--gamma", "1",
+        "--gamma", "0.95",
         "--min_obs", "7",
         # "--post_process",
         "-m", f"{outpath}/pred_mut.csv",
@@ -241,12 +245,13 @@ def get_options():
         "--cell_lookup", f"{outpath}/cell_lookup.csv",
         "--mut_lookup", f"{outpath}/mut_lookup.csv",
         "--mode", "rd",
-        "--low_cmb", "0.04",
-        "--high_cmb", "0.2",
-        "--nobs_per_cluster", "5",
+        "--low_cmb", "0.02",
+        "--high_cmb", "0.15",
+        "--nobs_per_cluster", "4",
      "--use_copy_kernel",
      "--embedding",f"{outpath}/embedding.csv",
-     "--post_process"
+     "--post_process",
+     "--no-umap"
 
 
 ])

@@ -262,17 +262,19 @@ class Phertilizer:
         variant_count_data= variant_count_data.set_index(["cell", "mutation"])
 
 
-    
+ 
           
  
         bin_count_data['cell_index'] = cell_series[bin_count_data['cell']].values
         bin_count_data = bin_count_data.sort_values(by=['cell_index'])
-        cells = bin_count_data["cell"].to_numpy().reshape(-1,1)
+
         bin_count_data.drop(['cell', 'cell_index'], inplace=True, axis=1)
         bin_count_data = bin_count_data.to_numpy()
-        bin_count_data = bin_count_data/(bin_count_data.sum(axis=1).reshape(-1,1))
+
+        print(bin_count_data)
         
         if dim_reduce:
+            bin_count_data = bin_count_data/(bin_count_data.sum(axis=1).reshape(-1,1))
             # embedding = pickle_load("embedding.pickle")
             # import phate
             # phate_op = phate.PHATE()
@@ -299,6 +301,7 @@ class Phertilizer:
             # plt.savefig("/scratch/data/leah/phertilizer/simulation_study/test/umap.png")
             
         cnn_hmm = None
+        print(embedding)
         
      
      

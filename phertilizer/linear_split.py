@@ -488,7 +488,7 @@ class Linear_split():
                     lt = LinearTree(cellsA, cellsB_tree,
                                     mutsA, mutsB_tree)
                     # lt.post_process()
-              
+                    print(lt)
                     f1, f2, f3 = self.check_metrics(cellsA, cellsB_tree, mutsA, mutsB_tree)
                     if f1 <= self.params.low_cmb and f2 >= self.params.high_cmb and f3:
            

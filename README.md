@@ -1,5 +1,7 @@
 ## Phertilizer: growing a clonal tree from ultra-low coverage single-cell DNA sequencing data of tumors
-[![Anaconda-Server Badge](https://anaconda.org/bioconda/phertilizer/badges/version.svg)](https://anaconda.org/bioconda/phertilizer) [![Anaconda-Server Badge](https://anaconda.org/bioconda/phertilizer/badges/installer/conda.svg)](https://conda.anaconda.org/bioconda) [![Anaconda-Server Badge](https://anaconda.org/bioconda/phertilizer/badges/license.svg)](https://anaconda.org/bioconda/phertilizer)   
+<!-- [![Anaconda-Server Badge](https://anaconda.org/bioconda/phertilizer/badges/version.svg)](https://anaconda.org/bioconda/phertilizer) 
+[![Anaconda-Server Badge](https://anaconda.org/bioconda/phertilizer/badges/installer/conda.svg)](https://conda.anaconda.org/bioconda)  -->
+[![Anaconda-Server Badge](https://anaconda.org/bioconda/phertilizer/badges/license.svg)](https://anaconda.org/bioconda/phertilizer)   
 
 For more details, see: https://doi.org/10.1101/2022.04.18.488655.
 
@@ -18,10 +20,9 @@ This is the Phertilizer code repository. The Phertilizer data repository is loca
      <!-- * [Using conda](#conda) -->
      * [Using github](#compilation)
      * [Dependencies](#pre-requisites)
-  2. [I/O formats](#io)
-  3. [Modes](#modes)  
-  4. [Usage](#usage)
-  5. [example](#example)
+  2. [I/O formats](#io) 
+  3. [Usage](#usage)
+  4. [Example](#example)
 
 <a name="install"></a>
 
@@ -128,7 +129,6 @@ optional arguments:
   --high_cmb HIGH_CMB   regularization parameter to assess the quality of a split where CMB should >= high_cmb for parts of an extension
   --nobs_per_cluster NOBS_PER_CLUSTER
                         regularization parameter on the median number of reads per cell/SNV to accept extension`
-
 
 
 

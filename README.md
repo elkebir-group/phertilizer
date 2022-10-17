@@ -21,7 +21,7 @@ This is the Phertilizer code repository. The Phertilizer data repository is loca
   2. [I/O formats](#io)
   3. [Modes](#modes)  
   4. [Usage](#usage)
-      + [SNV mode example](#snv-mode-example)
+  5. [example](#example)
 
 <a name="install"></a>
 
@@ -53,7 +53,7 @@ This is the Phertilizer code repository. The Phertilizer data repository is loca
 + [scipy](https://scipy.org)
 + [networkx](https://networkx.org)
 + [scikit-learn](https://scikit-learn.org/stable/modules/clustering.html#clustering)
-+ [pygrahpviz](https://pygraphviz.github.io)
++ [pygrahpviz](https://pygraphviz.github.io)(>=1.1.2)
 
 
 
@@ -82,7 +82,7 @@ See `example/output` for examples of output files 1 through 4.
 <a name="usage"></a>
 ## Usage
 
-usage: phertilizer [-h] -f FILE --bin_count_data BIN_COUNT_DATA [-a ALPHA] [-j ITERATIONS] [-s STARTS] [-d SEED] [--radius RADIUS] [-c COPIES] 
+`usage: phertilizer [-h] -f FILE --bin_count_data BIN_COUNT_DATA [-a ALPHA] [-j ITERATIONS] [-s STARTS] [-d SEED] [--radius RADIUS] [-c COPIES] 
                    [--runs RUNS] [-g GAMMA] [--min_obs MIN_OBS] [-m PRED_MUT] [-n PRED_CELL] [--post_process] [--tree TREE] [--tree_pickle TREE_PICKLE] [--tree_path TREE_PATH] [--tree_list TREE_LIST] [--tree_text TREE_TEXT] [--likelihood LIKELIHOOD] [--embedding EMBEDDING] 
                    [--no-umap] [--low_cmb LOW_CMB] [--high_cmb HIGH_CMB] [--nobs_per_cluster NOBS_PER_CLUSTER]
 
@@ -127,16 +127,16 @@ optional arguments:
   --low_cmb LOW_CMB     regularization parameter to assess the quality of a split where CMB should <= low_cmb for parts of an extension
   --high_cmb HIGH_CMB   regularization parameter to assess the quality of a split where CMB should >= high_cmb for parts of an extension
   --nobs_per_cluster NOBS_PER_CLUSTER
-                        regularization parameter on the median number of reads per cell/SNV to accept extension
+                        regularization parameter on the median number of reads per cell/SNV to accept extension`
 
 
 
 
 
-<a name="snv-mode-example"></a>
-### SNV mode example
+<a name="example"></a>
+### Example
 
-Here we show an example of how to run `Phertilizer` in SNV Mode.
+Here we show an example of how to run `Phertilizer`.
 The input files are located in the `example/input` directory.
 
 

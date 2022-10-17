@@ -82,54 +82,54 @@ See `example/output` for examples of output files 1 through 4.
 <a name="usage"></a>
 ## Usage
 
-$ phertilizer -h
-usage: phertilizer [-h] -f FILE --bin_count_data BIN_COUNT_DATA [-a ALPHA] [-j ITERATIONS] [-s STARTS] [-d SEED] [--radius RADIUS] [-c COPIES]
-                   [--runs RUNS] [-g GAMMA] [--min_obs MIN_OBS] [-m PRED_MUT] [-n PRED_CELL] [--post_process] [--tree TREE]
-                   [--tree_pickle TREE_PICKLE] [--tree_path TREE_PATH] [--tree_list TREE_LIST] [--tree_text TREE_TEXT] [--likelihood LIKELIHOOD]
-                   [--embedding EMBEDDING] [--no-umap] [--low_cmb LOW_CMB] [--high_cmb HIGH_CMB] [--nobs_per_cluster NOBS_PER_CLUSTER]
+      $ phertilizer -h
+      usage: phertilizer [-h] -f FILE --bin_count_data BIN_COUNT_DATA [-a ALPHA] [-j ITERATIONS] [-s STARTS] [-d SEED] [--radius RADIUS] [-c COPIES]
+                        [--runs RUNS] [-g GAMMA] [--min_obs MIN_OBS] [-m PRED_MUT] [-n PRED_CELL] [--post_process] [--tree TREE]
+                        [--tree_pickle TREE_PICKLE] [--tree_path TREE_PATH] [--tree_list TREE_LIST] [--tree_text TREE_TEXT] [--likelihood LIKELIHOOD]
+                        [--embedding EMBEDDING] [--no-umap] [--low_cmb LOW_CMB] [--high_cmb HIGH_CMB] [--nobs_per_cluster NOBS_PER_CLUSTER]
 
-optional arguments:
-  -h, --help            show this help message and exit
-  -f FILE, --file FILE  input file for variant and total read counts with unlabled columns: [chr snv cell base var total]
-  --bin_count_data BIN_COUNT_DATA
-                        input binned read counts with headers containing bin ids or embedding dimensions
-  -a ALPHA, --alpha ALPHA
-                        per base read error rate
-  -j ITERATIONS, --iterations ITERATIONS
-                        maximum number of iterations
-  -s STARTS, --starts STARTS
-                        number of restarts
-  -d SEED, --seed SEED  seed
-  --radius RADIUS
-  -c COPIES, --copies COPIES
-                        max number of copies
-  --runs RUNS           number of Phertilizer runs
-  -g GAMMA, --gamma GAMMA
-                        confidence level for power calculation to determine if there are sufficient observations for inference
-  --min_obs MIN_OBS     lower bound on the minimum number of observations for a partition
-  -m PRED_MUT, --pred-mut PRED_MUT
-                        output file for mutation clusters
-  -n PRED_CELL, --pred_cell PRED_CELL
-                        output file cell clusters
-  --post_process        indicator if post processing should be performed on inferred tree
-  --tree TREE           output file for png (dot) of Phertilizer tree
-  --tree_pickle TREE_PICKLE
-                        output pickle of Phertilizer tree
-  --tree_path TREE_PATH
-                        path to directory where pngs of all candidate trees are saved
-  --tree_list TREE_LIST
-                        pickle file to save a ClonalTreeList of all generated trees
-  --tree_text TREE_TEXT
-                        text file save edge list of best clonal tree
-  --likelihood LIKELIHOOD
-                        output file where the likelihood of the best tree should be written
-  --embedding EMBEDDING
-                        filename where the UMAP coordinates should be saved after embedding binned read counts
-  --no-umap             flag to indicate that input reads per bin file should NOT undergo additional dimensionality reduction
-  --low_cmb LOW_CMB     regularization parameter to assess the quality of a split where CMB should <= low_cmb for parts of an extension
-  --high_cmb HIGH_CMB   regularization parameter to assess the quality of a split where CMB should >= high_cmb for parts of an extension
-  --nobs_per_cluster NOBS_PER_CLUSTER
-                        regularization parameter on the median number of reads per cell/SNV to accept extension
+      optional arguments:
+      -h, --help            show this help message and exit
+      -f FILE, --file FILE  input file for variant and total read counts with unlabled columns: [chr snv cell base var total]
+      --bin_count_data BIN_COUNT_DATA
+                              input binned read counts with headers containing bin ids or embedding dimensions
+      -a ALPHA, --alpha ALPHA
+                              per base read error rate
+      -j ITERATIONS, --iterations ITERATIONS
+                              maximum number of iterations
+      -s STARTS, --starts STARTS
+                              number of restarts
+      -d SEED, --seed SEED  seed
+      --radius RADIUS
+      -c COPIES, --copies COPIES
+                              max number of copies
+      --runs RUNS           number of Phertilizer runs
+      -g GAMMA, --gamma GAMMA
+                              confidence level for power calculation to determine if there are sufficient observations for inference
+      --min_obs MIN_OBS     lower bound on the minimum number of observations for a partition
+      -m PRED_MUT, --pred-mut PRED_MUT
+                              output file for mutation clusters
+      -n PRED_CELL, --pred_cell PRED_CELL
+                              output file cell clusters
+      --post_process        indicator if post processing should be performed on inferred tree
+      --tree TREE           output file for png (dot) of Phertilizer tree
+      --tree_pickle TREE_PICKLE
+                              output pickle of Phertilizer tree
+      --tree_path TREE_PATH
+                              path to directory where pngs of all candidate trees are saved
+      --tree_list TREE_LIST
+                              pickle file to save a ClonalTreeList of all generated trees
+      --tree_text TREE_TEXT
+                              text file save edge list of best clonal tree
+      --likelihood LIKELIHOOD
+                              output file where the likelihood of the best tree should be written
+      --embedding EMBEDDING
+                              filename where the UMAP coordinates should be saved after embedding binned read counts
+      --no-umap             flag to indicate that input reads per bin file should NOT undergo additional dimensionality reduction
+      --low_cmb LOW_CMB     regularization parameter to assess the quality of a split where CMB should <= low_cmb for parts of an extension
+      --high_cmb HIGH_CMB   regularization parameter to assess the quality of a split where CMB should >= high_cmb for parts of an extension
+      --nobs_per_cluster NOBS_PER_CLUSTER
+                              regularization parameter on the median number of reads per cell/SNV to accept extension
 
 
 <a name="example"></a>

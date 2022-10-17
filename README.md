@@ -55,6 +55,7 @@ This is the Phertilizer code repository. The Phertilizer data repository is loca
 + [networkx](https://networkx.org)
 + [scikit-learn](https://scikit-learn.org/stable/modules/clustering.html#clustering)(>=1.1.2)
 + [pygrahpviz](https://pygraphviz.github.io)
++ [umap](https://umap-learn.readthedocs.io/en/latest/index.html)
 
 
 <a name="io"></a>

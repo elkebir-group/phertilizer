@@ -153,7 +153,7 @@ def get_options():
                         help="per base read error rate")
     parser.add_argument("-j", "--iterations", type=int, default=5,
                         help="maximum number of iterations")
-    parser.add_argument("-s", "--starts", type=int, default=3,
+    parser.add_argument("-s", "--starts", type=int, default=10,
                         help="number of restarts")
     parser.add_argument("-d", "--seed", type=int, default=99059,
                         help="seed")

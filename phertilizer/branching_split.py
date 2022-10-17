@@ -1,19 +1,16 @@
-from calendar import c
+
 import numpy as np
 from scipy.spatial.distance import pdist, squareform
 import pandas as pd
 
 
-# from phertilizer.clonal_tree_list import ClonalTreeList
-# from phertilizer.utils import normalizedMinCut, check_stats, snv_kernel_width, cnv_kernel_width, impute_mut_features, find_cells_with_no_reads, find_muts_with_no_reads
-# from phertilizer.clonal_tree import BranchingTree
-# from phertilizer.clonal_tree_list import ClonalTreeList
 
-from clonal_tree_list import ClonalTreeList
-from utils import normalizedMinCut, snv_kernel_width, cnv_kernel_width, impute_mut_features
-from clonal_tree import BranchingTree
-from clonal_tree_list import ClonalTreeList
+from phertilizer.clonal_tree_list import ClonalTreeList
+from phertilizer.utils import normalizedMinCut, snv_kernel_width, cnv_kernel_width, impute_mut_features
+from phertilizer.clonal_tree import BranchingTree
+from phertilizer.clonal_tree_list import ClonalTreeList
 
+np.seterr(invalid='ignore')
 
 class Branching_split():
     """
@@ -417,19 +414,6 @@ class Branching_split():
             feat3 =np.nanmedian((var/tot))
         else:
             feat3 = 1
-
-
-        # feat4_total = np.count_nonzero(
-        #     self.data.total[np.ix_(ca, mb)], axis=1)
-                
-        # #should be high ~ 0.9 percent
-        # feat4 = np.sum(feat4_total >= self.params.min_num_reads)/len(ca)
-
-        # feat5_total = np.count_nonzero(
-        #     self.data.total[np.ix_(cb, ma)], axis=1)
-        
-        # #should be high ~ 0.9 percent
-        # feat5 = np.sum(feat5_total >= self.params.min_num_reads)/len(cb)
 
         feats = []
 

@@ -1,4 +1,3 @@
-from ast import Raise
 from copy import deepcopy
 import numpy as np
 import pandas as pd
@@ -6,19 +5,15 @@ import networkx as nx
 from collections import Counter
 from itertools import product, chain, combinations
 from scipy.stats import multivariate_normal
-# from phertilizer.seed import Seed
-# from phertilizer.draw_clonal_tree import DrawClonalTree
-# from phertilizer.utils import get_next_label, dict_to_series, pickle_save, generate_cell_dataframe, generate_mut_dataframe, dict_to_dataframe
-
-
-# from seed import Seed
-from draw_clonal_tree import DrawClonalTree
-from utils import get_next_label, dict_to_series, pickle_save, generate_cell_dataframe, generate_mut_dataframe, dict_to_dataframe
-
-
 from dataclasses import dataclass
-import numpy as np
-# from clonal_tree import LinearTree, BranchingTree
+
+
+
+
+from phertilizer.draw_clonal_tree import DrawClonalTree
+from phertilizer.utils import get_next_label, dict_to_series, pickle_save, generate_cell_dataframe, generate_mut_dataframe, dict_to_dataframe
+
+
 
 
 
@@ -687,7 +682,7 @@ class ClonalTree:
         nmuts = data.mut_lookup.shape[0]
         nodes = list(nx.dfs_postorder_nodes(self.tree, source=self.find_root()))
         loglikelihood = self.compute_likelihood(data)
-        print(f'loglikelihood {loglikelihood}')
+ 
         prev_loglikelihood = loglikelihood
         if place_missing:
             missing_snvs = self.find_missing_snvs(data)

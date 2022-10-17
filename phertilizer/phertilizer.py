@@ -6,28 +6,19 @@ from scipy.spatial.distance import pdist, squareform
 import numba
 import umap
 
-from utils import pickle_save, check_obs, power_calc, pickle_load
-
-# from phertilizer.cna_events import CNA_HMM
-# import phertilizer.branching_split as bs
-# import phertilizer.linear_split as ls
-# from phertilizer.seed import Seed
-# from phertilizer.data import Data
-# from phertilizer.params import Params
-# from phertilizer.clonal_tree import IdentityTree
-# from collections import deque
-# from phertilizer.clonal_tree_list import ClonalTreeList
-
-from cna_events import CNA_HMM
-import branching_split as bs
-import linear_split as ls
-
-from data import Data
-from params import Params
-from clonal_tree import IdentityTree, LinearTree, Seed
 from collections import deque
-from clonal_tree_list import ClonalTreeList
-import matplotlib.pyplot as plt
+
+
+from phertilizer.cna_events import CNA_HMM
+import phertilizer.branching_split as bs
+import phertilizer.linear_split as ls
+from phertilizer.data import Data
+from phertilizer.params import Params
+from phertilizer.clonal_tree import IdentityTree, Seed
+from phertilizer.clonal_tree_list import ClonalTreeList
+from phertilizer.utils import check_obs, power_calc
+
+
 
 
 
@@ -271,7 +262,7 @@ class Phertilizer:
         bin_count_data.drop(['cell', 'cell_index'], inplace=True, axis=1)
         bin_count_data = bin_count_data.to_numpy()
 
-        print(bin_count_data)
+
         
         if dim_reduce:
             bin_count_data = bin_count_data/(bin_count_data.sum(axis=1).reshape(-1,1))
@@ -293,15 +284,10 @@ class Phertilizer:
         else:
             embedding = bin_count_data
         copy_distance = squareform(pdist(embedding, metric="euclidean"))
-            # plt.scatter(
-            #                 embedding[:, 0],
-            #                 embedding[:, 1])
-            # plt.gca().set_aspect('equal', 'datalim')
-            # plt.title('UMAP projection of Read Depth', fontsize=24)
-            # plt.savefig("/scratch/data/leah/phertilizer/simulation_study/test/umap.png")
+
             
         cnn_hmm = None
-        print(embedding)
+
         
      
      
@@ -523,21 +509,18 @@ class Phertilizer:
                 print("Insufficient number of observations, seed is terminal")
                 continue
             
-            print("Starting k-clonal tree inference for seed:")
+            # print("\nStarting clonal tree inference for seed:")
       
     
            
             for sprout in sprout_list:
 
-                print("Sprouting seed:")
-                print(curr_seed)
 
                 #perform an elementary tree operation from the given seed
                 tree, new_seeds = sprout(curr_seed)
 
                 if tree is not None:
-                    
-                    print("\nSprouted tree:")
+                    print("\n")
                     print(tree)
                     self.mapping_list[key].append(tree)
                     seed_list += new_seeds
@@ -550,8 +533,7 @@ class Phertilizer:
            
             print(f"Number of subproblems remaining: {len(seed_list)}")
             key += 1
-            # if key > 1:
-            #     break
+    
 
 
       
@@ -648,7 +630,8 @@ class Phertilizer:
             a BranchingTree with the highest likelihood or None is no valid BranchingTree is found
         '''
 
-        print("\nSprouting a branching tree..")  
+        print("\nSprouting a branching tree from seed:")
+        print(seed)
         
         #perform a branching split
         br_split = bs.Branching_split(self.data,
@@ -682,7 +665,9 @@ class Phertilizer:
         best_tree
             a LinearTree with the highest likelihood or None is no valid LinearTree is found
         '''
-        print("\nSprouting a linear tree...")    
+        print("\nSprouting a linear tree from seed:")
+        print(seed)
+        
         lin_split =ls.Linear_split(     self.data,
                                         seed,
                                         self.rng,  

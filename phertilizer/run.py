@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 
 import argparse
+from operator import truediv
 import sys
 import pandas as pd
 import numpy as np
 
-from phertilizer import Phertilizer
-from utils import pickle_save
-# from phertilizer.phertilizer import Phertilizer
-# from phertilizer.utils import pickle_save
+
+from phertilizer.phertilizer import Phertilizer
+from phertilizer.utils import pickle_save
 
 
 def main(args):
@@ -26,21 +26,22 @@ def main(args):
     else:
         bin_count_data = pd.read_table(args.bin_count_data)
 
-    print(bin_count_data.head())
+ 
 
 
 
 
-    print("Input data:")
+    print("\nInput variant read count data:")
     print(variant_data.head())
-
+    print("\nInput binned read count data:")
+    print(bin_count_data.head())
   
 
     ph = Phertilizer(variant_data,
                      bin_count_data,
                      alpha =args.alpha,
                      max_copies = args.copies,
-                    mode = args.mode,
+                    mode = "rd",
                     dim_reduce = not args.no_umap )
 
     if args.embedding is not None:
@@ -60,7 +61,7 @@ def main(args):
             radius=args.radius,
             gamma= args.gamma,
             d = args.min_obs,
-            use_copy_kernel = args.use_copy_kernel,
+            use_copy_kernel = True,
             post_process = args.post_process,
             low_cmb = args.low_cmb,
             high_cmb = args.high_cmb,
@@ -70,16 +71,12 @@ def main(args):
         if grow_tree.norm_loglikelihood  > best_like:
             best_like = grow_tree.norm_loglikelihood
             best_tree, best_list, best_loglikes = grow_tree, pre_process_list, loglikelihood
-        print(f"Run {i+1} complete")
-        print(best_tree)
-        print(f"Normalize Log Likelihood: {best_like}")
+        print(f"\nRun {i+1} complete: Normalized Log Likelihood: {best_like}")
+
 
 
 
     cell_lookup, mut_lookup = ph.get_id_mappings()
-    if args.data is not None:
-        pickle_save(ph.data, args.data )
-
 
 
  
@@ -90,7 +87,7 @@ def main(args):
 
     
   
-    print("Saving files.....")
+    print("\nSaving files.....")
 
 
     if args.tree_list is not None:
@@ -110,18 +107,9 @@ def main(args):
         pickle_save(best_tree, args.tree_pickle)
 
     cell_lookup, mut_lookup = ph.get_id_mappings()
-    pcell, pmut, _, event_df = best_tree.generate_results(
+    pcell, pmut, _, _ = best_tree.generate_results(
         cell_lookup, mut_lookup)
 
-    if args.cell_lookup is not None:
-        cell_lookup = cell_lookup.rename("cell_label")
-        cell_lookup.index.name = "cell_id"
-        cell_lookup.to_csv(args.cell_lookup)
-
-    if args.mut_lookup is not None:
-        mut_lookup = mut_lookup.rename("mut_label")
-        mut_lookup.index.name = "mut_id"
-        mut_lookup.to_csv(args.mut_lookup)
 
     if args.pred_cell is not None:
         pcell.to_csv(args.pred_cell, index=False)
@@ -135,12 +123,10 @@ def main(args):
     if args.tree_text is not None:
         best_tree.save_text(args.tree_text)
 
-    if args.params is not None:
-        pickle_save(ph.params, args.params)
-    
 
 
-    print("Thanks for planting a tree! See you later, friend.")
+
+    print("\nThanks for planting a tree! See you later, friend.")
 
 
 def get_options():
@@ -148,62 +134,53 @@ def get_options():
     parser.add_argument("-f", "--file", required=True,
                         help="input file for variant and total read counts with unlabled columns: [chr snv cell base var total]")
     parser.add_argument("--bin_count_data", required=True,
-                        help="input binned read counts with headers containing bin ids")
+                        help="input binned read counts with headers containing bin ids or embedding dimensions")
     parser.add_argument("-a", "--alpha", type=float, default=0.001,
                         help="per base read error rate")
-    parser.add_argument("-j", "--iterations", type=int, default=5,
+    parser.add_argument("-j", "--iterations", type=int, default=50, 
                         help="maximum number of iterations")
-    parser.add_argument("-s", "--starts", type=int, default=10,
+    parser.add_argument("-s", "--starts", type=int, default=16,
                         help="number of restarts")
     parser.add_argument("-d", "--seed", type=int, default=99059,
                         help="seed")
-    parser.add_argument("--radius", type=float, default=0.5)
+    parser.add_argument("--radius", type=float, default=1)
     parser.add_argument("-c", "--copies", type=int, default=5,
                         help="max number of copies")
     parser.add_argument("--runs", type=int, default=1,
                         help="number of Phertilizer runs")
     parser.add_argument("-g", "--gamma", type=float, default=0.95,
                         help="confidence level for power calculation to determine if there are sufficient observations for inference")
-    parser.add_argument("--min_obs", type=int, default=7,
+    parser.add_argument("--min_obs", type=int, default=10,
                         help = "lower bound on the minimum number of observations for a partition")
-    parser.add_argument("--use_copy_kernel", action="store_true",
-                        help="indicator if copy number kernel should be used in cell clustering")
     parser.add_argument("-m", "--pred-mut",
                         help="output file for mutation clusters")
     parser.add_argument("-n", "--pred_cell",
                         help="output file cell clusters")
     parser.add_argument("--post_process", action="store_true", 
-                        help="indicator low support cells and snvs should be placed into tree after inference")
+                        help="indicator if post processing should be performed on inferred tree")
     parser.add_argument("--tree",
                         help="output file for png (dot) of Phertilizer tree")
     parser.add_argument("--tree_pickle",
                         help="output pickle of Phertilizer tree")
     parser.add_argument("--tree_path",
-                        help="path to directory where pngs of all trees are saved")
+                        help="path to directory where pngs of all candidate trees are saved")
     parser.add_argument("--tree_list",
                         help="pickle file to save a ClonalTreeList of all generated trees")
     parser.add_argument("--tree_text",
                         help="text file save edge list of best clonal tree")
-    parser.add_argument("--cell_lookup",
-                        help="output file that maps internal cell index to the input cell label")
-    parser.add_argument("--mut_lookup",
-                        help="output file that maps internal mutation index to the input mutation label")
     parser.add_argument("--likelihood",
                         help="output file where the likelihood of the best tree should be written")
-    parser.add_argument("--mode", choices=["var", "rd"],
-                        help="the likelihood phertilizer should use to select the best tree")
     parser.add_argument("--embedding", type=str,
-                        help="filename where the umap coordinates should be saved") 
+                        help="filename where the UMAP coordinates should be saved after embedding binned read counts") 
     parser.add_argument("--no-umap", action="store_true",
-                        help="flag to indicate that input reads per bin file should Not undergo dimensionality reduction")
-    parser.add_argument("--low_cmb", type=float, default=0.05)
+                        help="flag to indicate that input reads per bin file should NOT undergo additional dimensionality reduction")
+    parser.add_argument("--low_cmb", type=float, default=0.05,
+                        help="regularization parameter to assess the quality of a split where CMB should <= low_cmb for parts of an extension" )
     parser.add_argument("--high_cmb", type= float, default=0.15,
-                        help="filename where the umap coordinates should be saved") 
-    parser.add_argument("--nobs_per_cluster", type=int,default=4)
-    parser.add_argument("--data", type=str,
-                        help="filename where pickled data should be saved for post-processing")
-    parser.add_argument("--params", type=str,
-                        help="filename where pickled parameters should be save")      
+                        help="regularization parameter to assess the quality of a split where CMB should >= high_cmb for parts of an extension" )
+    parser.add_argument("--nobs_per_cluster", type=int,default=3,
+                        help="regularization parameter on the median number of reads per cell/SNV to accept extension")
+  
 
     args = parser.parse_args(None if sys.argv[1:] else ['-h'])
 

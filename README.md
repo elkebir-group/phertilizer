@@ -148,5 +148,5 @@ The input files are located in the `example/input` directory.
     -m example/output/SNV_clusters.csv \
     -s 3 -j 10 --post_process
 
-This command generates output files `tree.png`,`tree.txt`, `cell_clusters.csv`, and `SNV_clusters.csv` in directory `example\output`.
+This command generates output files `tree.png`,`tree.txt`, `cell_clusters.csv`, and `SNV_clusters.csv` in directory `example/output`.
 

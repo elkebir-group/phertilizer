@@ -66,7 +66,7 @@ The input for Phertilizer consists of two text based file:
      **Note: cell ids in binned read count file should exactly match cell ids in the variant reads dataframe**
 
  
- See `example/input` for examples of all input files.  
+ See [example/input](example/input) for examples of all input files.  
 
 The ouput file options include:  
   1. A png of the clonal tree with maximum posterior probability
@@ -77,7 +77,7 @@ The ouput file options include:
   6. A pickle file containing a ClonalTreeList of all enumerated clonal trees
 
 
-See `example/output` for examples of output files 1 through 4.  
+See [example/output](example/output) for examples of output files 1 through 4.  
 
 
 <a name="usage"></a>
@@ -137,7 +137,7 @@ See `example/output` for examples of output files 1 through 4.
 ### Example
 
 Here we show an example of how to run `Phertilizer`.
-The input files are located in the `example/input` directory.
+The input files are located in the [example/input](example/input) directory.
 
 
     $ phertilizer -f example/input/variant_counts.tsv \
@@ -148,5 +148,5 @@ The input files are located in the `example/input` directory.
     -m example/output/SNV_clusters.csv \
     -s 3 -j 10 --post_process
 
-This command generates output files `tree.png`,`tree.txt`, `cell_clusters.csv`, and `SNV_clusters.csv` in directory `example/output`.
+This command generates output files `tree.png`,`tree.txt`, `cell_clusters.csv`, and `SNV_clusters.csv` in directory [example/output](example/output).
 

@@ -61,7 +61,7 @@ This is the Phertilizer code repository. The Phertilizer data repository is loca
 <a name="io"></a>
 ## IO Formats
 The input for Phertilizer consists of two text based file:
-  1. A tab or comma separated dataframe with unlabeled columns: |chr | snv | cell | variant_reads | total_reads |
+  1. A tab or comma separated dataframe with unlabeled columns: |chr | snv | cell | alternate base | variant_reads | total_reads |
   2. A tab or comma separated dataframe for binned reads counts for tumor cells with labeled columns: |cell | bin1 | bin2 | ... | binb |  
      **Note: cell ids in binned read count file should exactly match cell ids in the variant reads dataframe**
 

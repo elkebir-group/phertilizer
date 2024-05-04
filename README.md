@@ -52,7 +52,7 @@ This is the Phertilizer code repository. The Phertilizer data repository is loca
 + [pandas](https://pandas.pydata.org/pandas-docs/stable/index.html)
 + [numba](http://numba.pydata.org)
 + [scipy](https://scipy.org)
-+ [networkx](https://networkx.org)
++ [networkx](https://networkx.org)(<=3.1)
 + [scikit-learn](https://scikit-learn.org/stable/modules/clustering.html#clustering)(>=1.1.2)
 + [pygrahpviz](https://pygraphviz.github.io)
 + [umap](https://umap-learn.readthedocs.io/en/latest/index.html)
